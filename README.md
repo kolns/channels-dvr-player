@@ -1,221 +1,161 @@
-# Live TV Player Setup 📺
+# Live TV Player 📺
 
 A web-based live TV streaming application that integrates with Channels DVR to create custom playlists and watch live television from your browser.
 
 ## ✨ Features
 
-- **📡 Channels DVR Integration**: Automatically discovers and syncs with your Channels DVR server
-- **🎯 Custom Playlists**: Create personalized channel playlists for easy access
-- **📱 Web-Based Player**: Watch live TV directly in your browser with HLS streaming
-- **🔍 Channel Search**: Find channels and programs quickly
-- **📊 Program Guide**: Real-time program information and progress tracking
-- **⚙️ Easy Setup**: Simple web interface for configuration
+  - **🐳 Docker Support**: Easy to deploy and manage as a containerized application.
+  - **📡 Channels DVR Integration**: Automatically discovers and syncs with your Channels DVR server.
+  - **🎯 Custom Playlists**: Create personalized channel playlists for easy access.
+  - **📱 Web-Based Player**: Watch live TV directly in your browser with HLS streaming.
+  - **🔍 Channel Search**: Find channels and programs quickly.
+  - **📊 Program Guide**: Real-time program information and progress tracking.
+  - **⚙️ Easy Setup**: Simple web interface for configuration.
 
-## �🚀 Quick Start
+-----
+
+## 🚀 Quick Start with Docker (Recommended)
+
+This is the easiest and recommended way to get started.
 
 ### Prerequisites
 
-- **Python 3.7+** installed on your system
-- **Channels DVR Server** running on your network
-- **Modern web browser** (Chrome, Firefox, Safari, Edge)
+  - **Docker** installed on your system.
+  - **Channels DVR Server** running on your network.
 
-### Installation
+### Installation & Setup
 
-1. **Download the application**
-   ```bash
-   # If you received this as a zip file, extract it first
-   cd player_setup
-   ```
+1.  **Download and Extract the Application**
 
-2. **Set up Python environment**
-   ```bash
-   # Make setup script executable (Linux/Mac)
-   chmod +x setup_venv.sh
-   
-   # Run the setup script
-   ./setup_venv.sh
-   ```
-   
-   **For Windows users:**
-   ```cmd
-   # Create virtual environment
-   python -m venv venv
-   
-   # Activate virtual environment
-   venv\Scripts\activate
-   
-   # Install dependencies
-   pip install -r requirements.txt
-   ```
+      * Go to the GitHub repository for this project.
+      * Click the green **"Code"** button and select **"Download ZIP"**.
+      * Extract the contents of the ZIP file to a location on your computer.
 
-3. **Start the application**
-   ```bash
-   # Activate the environment (if not already active)
-   source venv/bin/activate  # Linux/Mac
-   # OR
-   venv\Scripts\activate     # Windows
-   
-   # Start the server
-   python app.py
-   ```
+2.  **Build the Docker Image**
 
-4. **Open in browser**
-   - Navigate to: `http://localhost:7734`
-   - The application will automatically try to discover your Channels DVR server
+      * Open a terminal (Command Prompt, PowerShell, or Terminal).
+      * Navigate into the extracted folder (e.g., `cd channels-dvr-player-main`).
+      * Run the following command to build the Docker image:
+        ```bash
+        docker build -t channels-dvr-player .
+        ```
 
-## 📋 Setup Guide
+3.  **Create a Docker Volume for Persistent Storage**
 
-### Step 1: Server Discovery
-1. Open the application in your browser
-2. Click **"Go to Setup"** 
-3. The app will automatically scan your network for Channels DVR servers
-4. If found, your server details will be displayed
+      * This command creates a managed volume to safely store your database and configuration files. This ensures your data persists even if you update or remove the container.
+        ```bash
+        docker volume create channels-dvr-config
+        ```
 
-### Step 2: Channel Sync
-1. Go to **Setup → Channels**
-2. Click **"Sync Channels"** to import from your DVR server
-3. Use the toggle switches to enable/disable channels
-4. Only enabled channels will be available for playlists
+4.  **Run the Docker Container**
 
-### Step 3: Create Playlists
-1. Navigate to **"Playlist Builder"**
-2. Click **"Create Playlist"** 
-3. Name your playlist
-4. Add channels by clicking the **+** button next to each channel
-5. Drag and drop to reorder channels
-6. Click **"Save"** to store your playlist
+      * Execute the command below to start the application. It will run in the background and restart automatically if your system reboots.
+        ```bash
+        docker run -d --restart unless-stopped -p 7734:7734 -v channels-dvr-config:/app/config --name channels-dvr-player channels-dvr-player
+        ```
 
-### Step 4: Watch Live TV
-1. Go to **"Live TV Player"**
-2. Select a playlist from the dropdown
-3. Click on any channel to start watching
-4. Use the controls to switch channels or manage playlists
+5.  **Open in Browser**
 
-## 🎮 How to Use
+      * Navigate to: `http://localhost:7734`
+      * The application will automatically try to discover your Channels DVR server and guide you through the first-time setup.
 
-### Creating Playlists
-- **Create**: Click the "Create Playlist" button
-- **Edit**: Click the pencil icon next to any playlist
-- **Delete**: Click the trash icon (with confirmation)
-- **Add Channels**: Use the + button in the Available Channels section
-- **Remove Channels**: Use the × button in the playlist editor
-- **Reorder**: Drag and drop channels within a playlist
+### Managing the Docker Container
 
-### Watching TV
-- **Select Playlist**: Use the dropdown in the player
-- **Choose Channel**: Click any channel in the sidebar
-- **Video Controls**: Standard browser video controls
-- **Program Info**: Current program displays below the video
-- **Stop/Switch**: Use stop button or click another channel
+  - **To stop the container:**
+    ```bash
+    docker stop channels-dvr-player
+    ```
+  - **To start the container again:**
+    ```bash
+    docker start channels-dvr-player
+    ```
+  - **To view the application logs:**
+    ```bash
+    docker logs -f channels-dvr-player
+    ```
+  - **To remove the container** (your data will be safe in the volume):
+    ```bash
+    docker rm -f channels-dvr-player
+    ```
 
-### Search & Navigation
-- **Search Channels**: Use search box in setup or playlist builder
-- **Quick Access**: Home page shows recent channels and featured programs
-- **Direct Links**: Bookmark `http://localhost:7734/player` for quick access
+-----
+
+## 📋 Manual Installation (Alternate Method)
+
+### Prerequisites
+
+  - **Python 3.7+** installed on your system.
+  - **Modern web browser** (Chrome, Firefox, Safari, Edge).
+
+### Installation Steps
+
+1.  **Download and Extract the application** as described in the Docker steps.
+
+2.  **Set up Python environment**
+
+    ```bash
+    # Make setup script executable (Linux/Mac)
+    chmod +x setup_venv.sh
+
+    # Run the setup script
+    ./setup_venv.sh
+    ```
+
+    **For Windows users:**
+
+    ```cmd
+    # Create virtual environment
+    python -m venv venv
+
+    # Activate virtual environment
+    venv\Scripts\activate
+
+    # Install dependencies
+    pip install -r requirements.txt
+    ```
+
+3.  **Start the application**
+
+    ```bash
+    # Activate the environment (if not already active)
+    source venv/bin/activate  # Linux/Mac
+    # OR
+    venv\Scripts\activate     # Windows
+
+    # Start the server
+    python app.py
+    ```
+
+-----
 
 ## 🔧 Troubleshooting
 
 ### Common Issues
 
 **🚫 "DVR Server Not Found"**
-- Ensure Channels DVR is running on your network
-- Check that both devices are on the same network
-- Try manually entering your DVR server IP in browser: `http://DVR_IP:8089`
+
+  - Ensure Channels DVR is running on your network.
+  - Check that both devices (or the Docker container's host) are on the same network.
+  - Try manually entering your DVR server IP in your browser: `http://DVR_IP:8089`
 
 **📺 "No Channels Available"**
-- Go to Setup → Channels and click "Sync Channels"
-- Make sure channels are enabled (toggle switches)
-- Verify your DVR has channels configured
+
+  - Go to **Setup → Channel Sync** and click **"Update Channels"**.
+  - Make sure channels are enabled in **Setup → Channel Management**.
 
 **🎬 "Video Won't Play"**
-- Check that your browser supports HLS video
-- Try refreshing the page
-- Ensure DVR server is accessible
-- Check browser console for errors (F12)
 
-**🔄 "Playlist Not Saving"**
-- Make sure you clicked "Save" after making changes
-- Check browser console for any error messages
-- Try refreshing and attempting again
-
-### Browser Requirements
-- **Chrome/Edge**: Full support (recommended)
-- **Firefox**: Full support
-- **Safari**: Full support
-- **Mobile**: Works on mobile browsers
+  - Ensure your browser supports HLS video.
+  - Check the application logs (`docker logs -f channels-dvr-player`) for errors.
 
 ### Network Requirements
-- DVR server and web browser must be on same network
-- Port 7734 must be available for the web application
-- Port 8089 must be accessible for DVR communication
 
-## 📁 File Structure
-
-```
-player_setup/
-├── app.py                 # Main application entry point
-├── requirements.txt       # Python dependencies
-├── setup_venv.sh         # Setup script for Linux/Mac
-├── activate_venv.sh      # Activation script
-├── app/                  # Application code
-│   ├── main/            # Main blueprint
-│   ├── models/          # Database models
-│   ├── services/        # External services
-│   ├── static/          # CSS, images, etc.
-│   └── templates/       # HTML templates
-└── config/              # Configuration and database
-```
-
-## 🆘 Getting Help
-
-### Debug Information
-If you encounter issues, collect this information:
-
-1. **Browser Console**: Press F12 → Console tab → copy any error messages
-2. **Network Tab**: F12 → Network tab → look for failed requests
-3. **DVR Status**: Note if your Channels DVR web interface works
-4. **Browser Version**: Help → About in your browser
-5. **Python Version**: Run `python --version`
-
-### Log Files
-The application prints helpful information to the terminal where you started it. Keep that window open for debugging.
-
-### Performance Tips
-- **Close unused browser tabs** for better video performance
-- **Use wired connection** for best streaming quality
-- **Check DVR server resources** if experiencing stuttering
+  - Your DVR server and the computer running the Docker container must be on the same network.
+  - Port `7734` must be available on the host machine.
+  - Port `8089` must be accessible for DVR communication.
 
 ## 🔒 Security Notes
 
-- This application is designed for **local network use only**
-- Do not expose to the internet without proper security measures
-- All data is stored locally in the `config/` directory
-- No personal information is transmitted outside your network
-
-## 📝 Notes for Testers
-
-### What to Test
-1. **Initial Setup**: Can you discover and connect to your DVR?
-2. **Channel Management**: Can you sync and enable/disable channels?
-3. **Playlist Creation**: Can you create, edit, and delete playlists?
-4. **Video Playback**: Does live TV stream properly?
-5. **UI/UX**: Is the interface intuitive and responsive?
-6. **Error Handling**: How does it behave with network issues?
-
-### Test Environment
-Please note:
-- Your operating system and version
-- Browser type and version
-- Network setup (WiFi/Ethernet)
-- Channels DVR version
-- Number of channels in your setup
-
----
-
-## Screenshots
-
-<img width="1344" height="1342" alt="0  Auto Discovery" src="https://github.com/user-attachments/assets/e3345bb7-ae45-4877-b511-5c20ca3096ad" />
-
-<img width="1344" height="1342" alt="1  Home Screen" src="https://github.com/user-attachments/assets/b83e470c-d85e-4bc0-91ee-94f4bee7aff4" />
-
-
+  - This application is designed for **local network use only**.
+  - Do not expose the application port to the internet without proper security measures (like a reverse proxy with authentication).
+  - All data is stored locally in the `config/` directory or the `channels-dvr-config` Docker volume.
