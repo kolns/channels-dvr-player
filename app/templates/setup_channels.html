@@ -1,0 +1,441 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.get_page_title('Channel Management') }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-8 h-full flex flex-col">
+    
+    <!-- Page Header -->
+    <div class="mb-8 flex-shrink-0">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-600 to-purple-700 rounded-full flex items-center justify-center mr-4 shadow-lg">
+                    <i class="fas fa-list text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-white mb-1">
+                        Channel Management
+                    </h1>
+                    <p class="text-gray-300">
+                        Enable and disable channels for your playlists
+                    </p>
+                </div>
+            </div>
+            <a href="/setup" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Setup
+            </a>
+        </div>
+    </div>
+
+        <!-- Channel Stats -->
+        <div class="bg-gradient-to-br from-gray-800/40 to-gray-900/60 backdrop-blur-xl border border-gray-600/30 rounded-xl mb-8 shadow-lg flex-shrink-0">
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-white flex items-center">
+                        <i class="fas fa-chart-bar mr-3 text-purple-400"></i>
+                        Channel Statistics
+                    </h2>
+                    
+                    <div class="flex items-center gap-8">
+                        <div class="text-center">
+                            <div id="enabledChannelsCount" class="text-2xl font-bold text-green-400">{{ enabled_channels_count }}</div>
+                            <div class="text-gray-400 text-sm">Enabled</div>
+                        </div>
+                        <div class="w-px h-8 bg-gray-600"></div>
+                        <div class="text-center">
+                            <div id="disabledChannelsCount" class="text-2xl font-bold text-gray-400">{{ channels_count - enabled_channels_count }}</div>
+                            <div class="text-gray-400 text-sm">Disabled</div>
+                        </div>
+                        <div class="w-px h-8 bg-gray-600"></div>
+                        <div class="text-center">
+                            <div id="totalChannelsCount" class="text-2xl font-bold text-blue-400">{{ channels_count }}</div>
+                            <div class="text-gray-400 text-sm">Total</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="bg-gradient-to-br from-gray-800/40 to-gray-900/60 backdrop-blur-xl border border-gray-600/30 rounded-xl mb-8 shadow-lg flex-shrink-0">
+            <div class="p-6">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div class="text-gray-300 lg:flex-1">
+                        Use the toggle switches to enable or disable channels. Only enabled channels will be available for playlists.
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 lg:flex-shrink-0">
+                        <!-- Search and Filter Controls -->
+                        <div class="flex items-center gap-3">
+                            <!-- Search -->
+                            <div class="relative">
+                                <input type="text" 
+                                       id="searchQuery"
+                                       placeholder="Search channels..."
+                                       class="bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 w-64">
+                                <i class="fas fa-search absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                            </div>
+                            
+                            <!-- Status Filter -->
+                            <select id="statusFilter" class="bg-gray-800/50 border border-gray-700/50 rounded-lg px-4 py-2.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50">
+                                <option value="">All Channels</option>
+                                <option value="enabled">Enabled Only</option>
+                                <option value="disabled">Disabled Only</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Bulk Actions -->
+                        <div class="flex items-center gap-2">
+                            <button id="enableAllBtn" class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:from-gray-600 disabled:to-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-lg shadow-green-600/20">
+                                <i class="fas fa-check-circle mr-1"></i>
+                                Enable All
+                            </button>
+                            <button id="disableAllBtn" class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:from-gray-600 disabled:to-gray-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 shadow-lg shadow-red-600/20">
+                                <i class="fas fa-times-circle mr-1"></i>
+                                Disable All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Channel Grid -->
+    <div class="bg-gradient-to-br from-gray-800/40 to-gray-900/60 backdrop-blur-xl border border-gray-600/30 rounded-xl shadow-lg flex-1 min-h-0 mb-6">
+        <div class="p-6 h-full flex flex-col">
+            <div id="channelGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto flex-1 custom-dark-scrollbar">
+                <!-- Channels will be populated by JavaScript -->
+            </div>
+            
+            <!-- No channels message -->
+            <div id="noChannelsMessage" class="text-center py-16 text-gray-400 hidden">
+                <i class="fas fa-tv text-6xl mb-6 opacity-50"></i>
+                <p id="noChannelsText" class="text-xl mb-4">No channels found</p>
+                <p class="text-gray-500">Try adjusting your search or filter criteria</p>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    /* Custom Dark Scrollbar for Channel Grid */
+    .custom-dark-scrollbar::-webkit-scrollbar {
+        width: 12px;
+    }
+
+    .custom-dark-scrollbar::-webkit-scrollbar-track {
+        background: rgba(17, 24, 39, 0.6);
+        border-radius: 8px;
+        border: 1px solid rgba(55, 65, 81, 0.3);
+    }
+
+    .custom-dark-scrollbar::-webkit-scrollbar-thumb {
+        background: linear-gradient(to bottom, rgba(75, 85, 99, 0.8), rgba(55, 65, 81, 0.9));
+        border-radius: 8px;
+        border: 1px solid rgba(31, 41, 55, 0.5);
+    }
+
+    .custom-dark-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(to bottom, rgba(107, 114, 128, 0.9), rgba(75, 85, 99, 1));
+    }
+
+    .custom-dark-scrollbar::-webkit-scrollbar-corner {
+        background: rgba(17, 24, 39, 0.6);
+    }
+
+    /* Firefox */
+    .custom-dark-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(75, 85, 99, 0.8) rgba(17, 24, 39, 0.6);
+    }
+
+    /* Fix channel card sizing */
+    #channelGrid {
+        align-content: start;
+    }
+
+    /* Ensure channel cards have consistent height */
+    .channel-card {
+        height: auto;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .channel-card-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    </style>
+
+    <script>
+    class ChannelManager {
+        constructor() {
+            this.channels = {{ channels | tojson }};
+            this.searchQuery = '';
+            this.statusFilter = '';
+            this.filteredChannels = [];
+            
+            this.init();
+        }
+        
+        init() {
+            this.setupEventListeners();
+            this.updateChannelCounts();
+            this.renderChannels();
+        }
+        
+        setupEventListeners() {
+            // Search and filter
+            document.getElementById('searchQuery').addEventListener('input', (e) => {
+                this.searchQuery = e.target.value;
+                this.updateFilteredChannels();
+                this.renderChannels();
+            });
+            
+            document.getElementById('statusFilter').addEventListener('change', (e) => {
+                this.statusFilter = e.target.value;
+                this.updateFilteredChannels();
+                this.renderChannels();
+            });
+            
+            // Bulk action buttons
+            document.getElementById('enableAllBtn').addEventListener('click', () => {
+                this.confirmEnableAll();
+            });
+            
+            document.getElementById('disableAllBtn').addEventListener('click', () => {
+                this.confirmDisableAll();
+            });
+        }
+        
+        updateFilteredChannels() {
+            let filtered = [...this.channels];
+            
+            // Filter by search query
+            if (this.searchQuery) {
+                const query = this.searchQuery.toLowerCase();
+                filtered = filtered.filter(channel => 
+                    channel.name.toLowerCase().includes(query) ||
+                    (channel.group_title && channel.group_title.toLowerCase().includes(query)) ||
+                    (channel.tvg_id && channel.tvg_id.toLowerCase().includes(query)) ||
+                    (channel.channel_number && channel.channel_number.toString().includes(query))
+                );
+            }
+            
+            // Filter by status
+            if (this.statusFilter) {
+                if (this.statusFilter === 'enabled') {
+                    filtered = filtered.filter(channel => channel.is_enabled);
+                } else if (this.statusFilter === 'disabled') {
+                    filtered = filtered.filter(channel => !channel.is_enabled);
+                }
+            }
+            
+            this.filteredChannels = filtered;
+        }
+        
+        updateChannelCounts() {
+            const enabledCount = this.channels.filter(channel => channel.is_enabled).length;
+            const disabledCount = this.channels.filter(channel => !channel.is_enabled).length;
+            const totalCount = this.channels.length;
+            
+            document.getElementById('enabledChannelsCount').textContent = enabledCount;
+            document.getElementById('disabledChannelsCount').textContent = disabledCount;
+            document.getElementById('totalChannelsCount').textContent = totalCount;
+        }
+        
+        renderChannels() {
+            this.updateFilteredChannels();
+            const channelGrid = document.getElementById('channelGrid');
+            const noChannelsMessage = document.getElementById('noChannelsMessage');
+            const noChannelsText = document.getElementById('noChannelsText');
+            
+            if (this.filteredChannels.length === 0) {
+                channelGrid.innerHTML = '';
+                noChannelsMessage.classList.remove('hidden');
+                if (this.channels.length === 0) {
+                    noChannelsText.textContent = 'No channels available';
+                } else {
+                    noChannelsText.textContent = 'No channels match your criteria';
+                }
+            } else {
+                noChannelsMessage.classList.add('hidden');
+                channelGrid.innerHTML = this.filteredChannels.map(channel => this.renderChannelCard(channel)).join('');
+                
+                // Add event listeners to toggle switches
+                this.filteredChannels.forEach(channel => {
+                    const checkbox = document.getElementById(`channel-toggle-${channel.id}`);
+                    if (checkbox) {
+                        checkbox.addEventListener('change', () => {
+                            this.toggleChannel(channel.id);
+                        });
+                    }
+                });
+            }
+        }
+        
+        renderChannelCard(channel) {
+            return `
+                <div class="channel-card bg-gray-800/40 border border-gray-700/40 rounded-lg p-4 hover:bg-gray-800/60 hover:border-gray-600/60 transition-all duration-200 shadow-sm">
+                    <div class="channel-card-content">
+                        <div class="flex items-center justify-between">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center mb-3">
+                                    ${channel.logo_url ? 
+                                        `<img src="${channel.logo_url}" 
+                                             alt="${channel.name}"
+                                             class="w-10 h-10 rounded-lg mr-3 object-cover flex-shrink-0"
+                                             onerror="this.style.display='none'">` : 
+                                        ''
+                                    }
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-white font-medium text-sm truncate">${channel.name}</h4>
+                                        <p class="text-gray-400 text-xs truncate">${channel.group_title || 'No Group'}</p>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-500 space-x-2">
+                                    ${channel.channel_number ? `<span class="bg-gray-700/50 px-2 py-1 rounded">Ch. ${channel.channel_number}</span>` : ''}
+                                    ${channel.tvg_id ? `<span class="bg-gray-700/50 px-2 py-1 rounded">${channel.tvg_id}</span>` : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Toggle Switch -->
+                            <div class="ml-3 flex-shrink-0">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" 
+                                           id="channel-toggle-${channel.id}"
+                                           ${channel.is_enabled ? 'checked' : ''}
+                                           class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        confirmEnableAll() {
+            const disabledCount = this.channels.filter(channel => !channel.is_enabled).length;
+            if (disabledCount === 0) {
+                alert('All channels are already enabled.');
+                return;
+            }
+            
+            const message = `Enable all ${this.channels.length} channels?\n\n` +
+                          `This will enable ${disabledCount} currently disabled channels.`;
+            
+            if (confirm(message)) {
+                this.bulkToggleChannels(true);
+            }
+        }
+        
+        confirmDisableAll() {
+            const enabledCount = this.channels.filter(channel => channel.is_enabled).length;
+            if (enabledCount === 0) {
+                alert('All channels are already disabled.');
+                return;
+            }
+            
+            const message = `Disable all ${this.channels.length} channels?\n\n` +
+                          `This will disable ${enabledCount} currently enabled channels.`;
+            
+            if (confirm(message)) {
+                this.bulkToggleChannels(false);
+            }
+        }
+        
+        async bulkToggleChannels(enable) {
+            const enableAllBtn = document.getElementById('enableAllBtn');
+            const disableAllBtn = document.getElementById('disableAllBtn');
+            
+            // Disable buttons during operation
+            enableAllBtn.disabled = true;
+            disableAllBtn.disabled = true;
+            
+            // Update button text to show progress
+            if (enable) {
+                enableAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Enabling...';
+            } else {
+                disableAllBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Disabling...';
+            }
+            
+            try {
+                const response = await fetch('/api/channels/bulk-toggle', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        enable: enable
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update local channel states
+                    this.channels.forEach(channel => {
+                        channel.is_enabled = enable;
+                    });
+                    
+                    // Update UI
+                    this.updateChannelCounts();
+                    this.renderChannels();
+                    
+                    // Show success message
+                    const actionText = enable ? 'enabled' : 'disabled';
+                    alert(`Successfully ${actionText} ${result.channels_updated} channels.`);
+                } else {
+                    alert('Error: ' + result.error);
+                }
+                
+            } catch (error) {
+                console.error('Error bulk toggling channels:', error);
+                alert('Network error: ' + error.message);
+            } finally {
+                // Reset button states
+                enableAllBtn.disabled = false;
+                disableAllBtn.disabled = false;
+                enableAllBtn.innerHTML = '<i class="fas fa-check-circle mr-1"></i>Enable All';
+                disableAllBtn.innerHTML = '<i class="fas fa-times-circle mr-1"></i>Disable All';
+            }
+        }
+        
+        async toggleChannel(channelId) {
+            try {
+                const response = await fetch(`/api/channels/${channelId}/toggle`, {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update local channel status
+                    const channel = this.channels.find(ch => ch.id === channelId);
+                    if (channel) {
+                        channel.is_enabled = result.is_enabled;
+                        this.updateChannelCounts();
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error toggling channel:', error);
+                // Revert the toggle if it failed
+                const checkbox = document.getElementById(`channel-toggle-${channelId}`);
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                }
+            }
+        }
+    }
+    
+    // Initialize when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        window.channelManager = new ChannelManager();
+    });
+    </script>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+services:
+  channels-player:
+    build: .
+    image: channels-dvr-player:latest
+    container_name: channels-player
+    restart: unless-stopped
+
+    # "host" mode is required for mDNS/Bonjour auto-discovery of the DVR.
+    # If you use "bridge", auto-discovery will FAIL and you must enter IP manually.
+    network_mode: host
+
+    environment:
+      - FLASK_DEBUG=false
+      - PORT=7734
+      - SECRET_KEY=change_me_to_something_secure
+      # Timezone is often needed for correct program guide times
+      - TZ=America/New_York
+
+    volumes:
+      # Persist the database and settings outside the container
+      - ./config:/app/config

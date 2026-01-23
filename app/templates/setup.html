@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}{{ config.get_page_title('setup') }}{% endblock %}
+
+{% block content %}
+<div class="flex flex-col">
+    <div class="max-w-6xl mx-auto px-12 w-full">
+        
+        <!-- Page Title - Left Aligned -->
+        <div class="mb-8 mt-8">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center mr-4 shadow-lg">
+                    <i class="fas fa-cog text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-bold text-white mb-1">
+                        Setup Dashboard
+                    </h1>
+                    <p class="text-gray-300">
+                        Monitor and Configure Your Channels DVR Player
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Server Status Card -->
+            <div class="bg-gradient-to-br from-blue-800/40 to-blue-900/60 backdrop-blur-xl border border-blue-600/30 rounded-xl shadow-lg">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-server text-white text-lg"></i>
+                        </div>
+                        <div class="flex items-center {% if dvr_status == 'online' %}bg-green-500/20 border-green-500/30{% else %}bg-red-500/20 border-red-500/30{% endif %} border rounded-full px-3 py-1">
+                            <div class="w-2 h-2 {% if dvr_status == 'online' %}bg-green-400{% else %}bg-red-400{% endif %} rounded-full mr-2 {% if dvr_status == 'online' %}animate-pulse{% endif %}"></div>
+                            <span class="{% if dvr_status == 'online' %}text-green-400{% else %}text-red-400{% endif %} text-xs font-medium">{{ dvr_status.title() }}</span>
+                        </div>
+                    </div>
+                    <h3 class="text-white font-semibold text-lg mb-2">DVR Server</h3>
+                    <p class="text-blue-200 text-sm mb-1">{{ server_info.name if server_info else 'Not Connected' }}</p>
+                    <p class="text-blue-300 text-xs">{{ server_info.ip_address if server_info else 'No IP' }}:{{ server_info.port if server_info else 'N/A' }}</p>
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="bg-gradient-to-br from-green-800/40 to-green-900/60 backdrop-blur-xl border border-green-600/30 rounded-xl shadow-lg">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-sync-alt text-white text-lg"></i>
+                        </div>
+                        <div class="text-green-300 text-xs">Last sync: Recently</div>
+                    </div>
+                    <h3 class="text-white font-semibold text-lg mb-4">Quick Sync</h3>
+                    <button onclick="quickSync()" class="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200">
+                        <i class="fas fa-sync-alt mr-2"></i>Sync Channels
+                    </button>
+                </div>
+            </div>
+
+            <!-- Channel Stats Card -->
+            <div class="bg-gradient-to-br from-purple-800/40 to-purple-900/60 backdrop-blur-xl border border-purple-600/30 rounded-xl shadow-lg">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
+                            <i class="fas fa-tv text-white text-lg"></i>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-purple-300" id="dashboardTotalChannels">{{ channels|length }}</div>
+                            <div class="text-purple-400 text-xs">Total</div>
+                        </div>
+                    </div>
+                    <h3 class="text-white font-semibold text-lg mb-2">Channels</h3>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-green-300">Enabled: <span id="dashboardEnabledChannels">{{ channels|selectattr('is_enabled')|list|length }}</span></span>
+                        <span class="text-gray-400">Disabled: <span id="dashboardDisabledChannels">{{ (channels|length) - (channels|selectattr('is_enabled')|list|length) }}</span></span>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+
+        <!-- Navigation Menu -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Server Configuration -->
+            <a href="/setup/server" class="block">
+                <div class="bg-gradient-to-br from-gray-800/40 to-gray-900/60 backdrop-blur-xl border border-gray-600/30 rounded-xl shadow-lg hover:border-blue-500/50 transition-all duration-200 group">
+                    <div class="p-8 text-center">
+                        <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-200">
+                            <i class="fas fa-server text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">Server Configuration</h3>
+                        <p class="text-gray-400 text-sm mb-4">Configure DVR server connection and view detailed server information</p>
+                        <div class="inline-flex items-center text-blue-400 text-sm font-medium">
+                            Configure Server <i class="fas fa-arrow-right ml-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Channel Sync -->
+            <a href="/setup/sync" class="block">
+                <div class="bg-gradient-to-br from-gray-800/40 to-gray-900/60 backdrop-blur-xl border border-gray-600/30 rounded-xl shadow-lg hover:border-green-500/50 transition-all duration-200 group">
+                    <div class="p-8 text-center">
+                        <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-200">
+                            <i class="fas fa-sync-alt text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">Channel Sync</h3>
+                        <p class="text-gray-400 text-sm mb-4">Sync channels from DVR server, update existing or resync everything</p>
+                        <div class="inline-flex items-center text-green-400 text-sm font-medium">
+                            Sync Channels <i class="fas fa-arrow-right ml-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Channel Management -->
+            <a href="/setup/channels" class="block">
+                <div class="bg-gradient-to-br from-gray-800/40 to-gray-900/60 backdrop-blur-xl border border-gray-600/30 rounded-xl shadow-lg hover:border-purple-500/50 transition-all duration-200 group">
+                    <div class="p-8 text-center">
+                        <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-200">
+                            <i class="fas fa-list text-white text-2xl"></i>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">Channel Management</h3>
+                        <p class="text-gray-400 text-sm mb-4">Enable/disable channels, search, filter, and manage your channel list</p>
+                        <div class="inline-flex items-center text-purple-400 text-sm font-medium">
+                            Manage Channels <i class="fas fa-arrow-right ml-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+
+        </div>
+
+        <script>
+        async function quickSync() {
+            const button = event.target;
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Syncing...';
+            
+            try {
+                const response = await fetch('/api/channels/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ replace_existing: false })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    button.innerHTML = '<i class="fas fa-check mr-2"></i>Success!';
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    button.innerHTML = '<i class="fas fa-times mr-2"></i>Failed';
+                    alert('Sync failed: ' + result.error);
+                }
+            } catch (error) {
+                button.innerHTML = '<i class="fas fa-times mr-2"></i>Error';
+                alert('Network error: ' + error.message);
+            } finally {
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-sync-alt mr-2"></i>Update Channels';
+                }, 2000);
+            }
+        }
+        </script>
+
+    </div>
+</div>
+{% endblock %}

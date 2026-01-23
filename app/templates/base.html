@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ config.get_page_title('index') }}{% endblock %}</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon/favicon.ico') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='favicon/favicon-16x16.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='favicon/apple-touch-icon.png') }}">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% block extra_head %}{% endblock %}
+    
+    <!-- HLS.js for HLS stream support - loaded conditionally -->
+    {% if request.endpoint == 'main.player' %}
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    {% endif %}
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace']
+                    },
+                    colors: {
+                        'primary': '{{ config.UI_THEME.primary_color }}',
+                        'primary-dark': '{{ config.UI_THEME.primary_dark }}',
+                        'secondary': '{{ config.UI_THEME.secondary_color }}',
+                        'accent': '{{ config.UI_THEME.accent_color }}'
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
+    
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans h-screen flex flex-col {% block body_class %}{% endblock %}">
+    <!-- Fixed Header -->
+    <header class="bg-gray-900/95 backdrop-blur-sm border-b border-gray-700/50 text-gray-100 p-6 sticky top-0 z-50 shadow-lg shadow-gray-900/20">
+        <div class="max-w-{{ config.UI_THEME.max_width }} mx-auto">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="{{ config.APP_NAME }}" class="w-8 h-8">
+                    <div>
+                        <h1 class="text-2xl font-light text-gray-100 leading-tight">{{ config.APP_NAME }}</h1>
+                        {% if config.FEATURES.show_app_version %}
+                        <p class="text-xs text-gray-400 leading-tight">{{ config.APP_TAGLINE }} v{{ config.APP_VERSION }}</p>
+                        {% else %}
+                        <p class="text-xs text-gray-400 leading-tight">{{ config.APP_TAGLINE }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Navigation top right -->
+                {% if dvr_available is not defined or dvr_available %}
+                <nav class="flex gap-3 items-center">
+                    <a href="{{ url_for('main.index') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {% if request.endpoint == 'main.index' %}bg-gray-700/50 text-white{% endif %}">
+                        <i class="fas fa-home mr-1"></i>Home
+                    </a>
+                    {% if playlists_count is defined and playlists_count > 0 %}
+                    <a href="{{ url_for('main.player') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {% if request.endpoint == 'main.player' %}bg-gray-700/50 text-white{% endif %}">
+                        <i class="fas fa-play mr-1"></i>Player
+                    </a>
+                    {% endif %}
+                    {% if enabled_channels_count is defined and enabled_channels_count > 0 %}
+                    <a href="{{ url_for('main.playlist') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {% if request.endpoint == 'main.playlist' %}bg-gray-700/50 text-white{% endif %}">
+                        <i class="fas fa-heart mr-1"></i>Playlists
+                    </a>
+                    {% endif %}
+                    <a href="{{ url_for('main.setup') }}" class="text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 {% if request.endpoint == 'main.setup' %}bg-gray-700/50 text-white{% endif %}">
+                        <i class="fas fa-cog mr-1"></i>Setup
+                    </a>
+                </nav>
+                {% endif %}
+            </div>
+            
+            {% block header_actions %}{% endblock %}
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="flex-1 overflow-auto">
+        {% block content %}{% endblock %}
+    </main>
+        
+    <!-- Fixed Footer -->
+    <footer class="bg-gray-800/60 backdrop-blur-sm border-t border-gray-700/50 text-center text-gray-400 text-sm py-4 mt-auto">
+        <div class="max-w-{{ config.UI_THEME.max_width }} mx-auto">
+            {% block footer %}
+            <div class="flex items-center justify-center gap-2">
+                <span>{{ config.APP_NAME }}</span>
+            </div>
+            {% endblock %}
+        </div>
+    </footer>
+
+    <!-- JavaScript Libraries -->
+    {% block scripts %}
+    <!-- Common utilities always loaded -->
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    
+    <!-- Page-specific scripts -->
+    {% if request.endpoint == 'main.index' %}
+    <script src="{{ url_for('static', filename='js/search.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/carousel.js') }}"></script>
+    {% elif request.endpoint == 'main.player' %}
+    <script src="{{ url_for('static', filename='js/player.js') }}"></script>
+    {% elif request.endpoint == 'main.playlist' %}
+    <script src="{{ url_for('static', filename='js/playlist-manager.js') }}"></script>
+    {% endif %}
+    {% endblock %}
+    
+    <!-- Page-specific inline scripts -->
+    {% block extra_scripts %}{% endblock %}
+
+</body>
+</html>
