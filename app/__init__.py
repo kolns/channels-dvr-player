@@ -1,6 +1,7 @@
 import os
 from flask import Flask
 from .models.core import init_db, close_db
+from config.app_config import AppConfig
 
 def create_app(test_config=None):
     # 1. Initialize Flask
@@ -28,5 +29,9 @@ def create_app(test_config=None):
 
     app.register_blueprint(ui_routes.bp) # Root URL /
     app.register_blueprint(api_routes.bp, url_prefix='/api')
+
+    @app.context_processor
+    def inject_config():
+        return {'config': AppConfig}
 
     return app
