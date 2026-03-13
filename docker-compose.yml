@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  player:
+    build: .
+    container_name: channels-dvr-player
+    ports:
+      - "7734:7734"
+    volumes:
+      - ./config:/app/config
+    # Uses host networking to allow mDNS discovery of Channels DVR Server on the local network
+    # Note: If host networking is used, ports block is ignored. We leave 'ports' for cross-platform fallback.
+    network_mode: "host"
+    environment:
+      - FLASK_DEBUG=False
+      # Use a random secret key for production, can be overridden with a .env file
+      - SECRET_KEY=docker-deployment-change-me
+      - HOST=0.0.0.0
+      - PORT=7734
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

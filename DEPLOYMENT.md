@@ -50,18 +50,27 @@ gunicorn --bind 0.0.0.0:7734 --workers 4 app:app
 ```
 
 #### Option C: Docker Deployment
-Create a `Dockerfile`:
-```dockerfile
-FROM python:3.9-slim
+For easiest deployment, use the provided `docker-compose.yml` file:
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
+```bash
+# Build and start the container in the background
+docker compose up -d
+```
 
-COPY . .
-EXPOSE 7734
+This will:
+- Build the custom image defined in the `Dockerfile`
+- Map port 7734 from the container to your host machine
+- Create a volume map for `./config` so your setup and database are persisted
+- Uses host networking by default to support Channels DVR auto-discovery
 
-CMD ["gunicorn", "--bind", "0.0.0.0:7734", "--workers", "4", "app:app"]
+To stop the application:
+```bash
+docker compose down
+```
+
+To view logs:
+```bash
+docker compose logs -f
 ```
 
 ### 3. Reverse Proxy Setup (Optional)
