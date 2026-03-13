@@ -77,6 +77,52 @@ class PlaylistManager {
                 this.hideModal();
             }
         });
+
+        // Playlist cards event delegation
+        document.getElementById('playlistsList').addEventListener('click', (e) => {
+            const editBtn = e.target.closest('button[id^="edit-playlist-"]');
+            if (editBtn) {
+                e.stopPropagation();
+                const id = parseInt(editBtn.id.replace('edit-playlist-', ''));
+                const playlist = this.playlists.find(p => p.id === id);
+                if (playlist) this.editPlaylist(playlist);
+                return;
+            }
+            const deleteBtn = e.target.closest('button[id^="delete-playlist-"]');
+            if (deleteBtn) {
+                e.stopPropagation();
+                const id = parseInt(deleteBtn.id.replace('delete-playlist-', ''));
+                this.deletePlaylist(id);
+                return;
+            }
+            const card = e.target.closest('.playlist-card');
+            if (card) {
+                let idStr = card.id.replace('playlist-', '');
+                // Handle search-history string ID vs numeric IDs
+                const id = idStr === 'search-history' ? idStr : parseInt(idStr);
+                const playlist = this.playlists.find(p => p.id === id);
+                if (playlist) this.selectPlaylist(playlist);
+            }
+        });
+
+        // Available channels event delegation 
+        document.getElementById('availableChannelsGrid').addEventListener('click', (e) => {
+            const addBtn = e.target.closest('button[id^="add-channel-"]');
+            if (addBtn && !addBtn.disabled) {
+                const id = parseInt(addBtn.id.replace('add-channel-', ''));
+                const channel = this.channels.find(c => c.id === id);
+                if (channel) this.addChannelToPlaylist(channel);
+            }
+        });
+
+        // Playlist channels event delegation
+        document.getElementById('playlistChannelsList').addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('button[id^="remove-channel-"]');
+            if (removeBtn) {
+                const id = parseInt(removeBtn.id.replace('remove-channel-', ''));
+                this.removeChannelFromPlaylist(id);
+            }
+        });
     }
     
     get enabledChannels() {
@@ -110,35 +156,6 @@ class PlaylistManager {
         } else {
             playlistsEmptyState.classList.add('hidden');
             playlistsList.innerHTML = this.playlists.map(playlist => this.renderPlaylistCard(playlist)).join('');
-            
-            // Add event listeners to playlist cards
-            this.playlists.forEach(playlist => {
-                const card = document.getElementById(`playlist-${playlist.id}`);
-                if (card) {
-                    card.addEventListener('click', () => {
-                        this.selectPlaylist(playlist);
-                    });
-                }
-                
-                // Only add edit/delete buttons for non-read-only playlists
-                const isReadOnly = playlist.isReadOnly || playlist.isSearchHistory;
-                
-                const editBtn = document.getElementById(`edit-playlist-${playlist.id}`);
-                if (editBtn && !isReadOnly) {
-                    editBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.editPlaylist(playlist);
-                    });
-                }
-                
-                const deleteBtn = document.getElementById(`delete-playlist-${playlist.id}`);
-                if (deleteBtn && !isReadOnly) {
-                    deleteBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        this.deletePlaylist(playlist.id);
-                    });
-                }
-            });
         }
     }
     
@@ -164,7 +181,7 @@ class PlaylistManager {
         }
             
         return `
-            <div id="playlist-${playlist.id}" class="mb-3 p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:bg-gray-700/30 ${cardClasses}">
+            <div id="playlist-${playlist.id}" class="playlist-card mb-3 p-4 rounded-xl border transition-all duration-200 cursor-pointer hover:bg-gray-700/30 ${cardClasses}">
                 <div class="flex items-center justify-between">
                     <div class="flex-1">
                         <h3 class="font-medium text-white text-sm flex items-center">
@@ -208,16 +225,6 @@ class PlaylistManager {
         } else {
             noChannelsMessage.classList.add('hidden');
             channelsGrid.innerHTML = this.filteredAvailableChannels.map(channel => this.renderChannelCard(channel)).join('');
-            
-            // Add event listeners to channel cards
-            this.filteredAvailableChannels.forEach(channel => {
-                const addBtn = document.getElementById(`add-channel-${channel.id}`);
-                if (addBtn) {
-                    addBtn.addEventListener('click', () => {
-                        this.addChannelToPlaylist(channel);
-                    });
-                }
-            });
         }
     }
     
@@ -235,6 +242,7 @@ class PlaylistManager {
                         ${channel.logo_url ? 
                             `<img src="${channel.logo_url}" 
                                  alt="${channel.name}"
+                                 loading="lazy"
                                  class="w-6 h-6 rounded mr-3 object-cover"
                                  onerror="this.style.display='none'">` : 
                             ''
@@ -272,15 +280,6 @@ class PlaylistManager {
             
             // Add event listeners to remove buttons (only for non-read-only playlists)
             if (!isReadOnly) {
-                this.selectedPlaylist.channels.forEach(channel => {
-                    const removeBtn = document.getElementById(`remove-channel-${channel.id}`);
-                    if (removeBtn) {
-                        removeBtn.addEventListener('click', () => {
-                            this.removeChannelFromPlaylist(channel.id);
-                        });
-                    }
-                });
-                
                 // Initialize drag and drop functionality
                 this.initializeDragAndDrop();
             }
@@ -383,6 +382,7 @@ class PlaylistManager {
                             ${channel.logo_url ? 
                                 `<img src="${channel.logo_url}" 
                                      alt="${channel.name}"
+                                     loading="lazy"
                                      class="w-6 h-6 rounded mr-3 object-cover"
                                      onerror="this.style.display='none'">` : 
                                 ''

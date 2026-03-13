@@ -56,7 +56,7 @@ A web-based live TV streaming application that integrates with Channels DVR to c
    venv\Scripts\activate     # Windows
    
    # Start the server
-   python app.py
+   python run.py
    ```
 
 4. **Open in browser**
@@ -153,7 +153,7 @@ A web-based live TV streaming application that integrates with Channels DVR to c
 
 ```
 player_setup/
-├── app.py                 # Main application entry point
+├── run.py                 # Main application entry point
 ├── requirements.txt       # Python dependencies
 ├── setup_venv.sh         # Setup script for Linux/Mac
 ├── activate_venv.sh      # Activation script

@@ -77,7 +77,18 @@ class ChannelsDVRClient:
         """Discover and cache DVR server information."""
         if self._cached_server_info:
             return self._cached_server_info
+            
+        # Try to load configured server without blocking discovery
+        try:
+            from config.app_config import AppConfig
+            configured_server = AppConfig.get_setup_flag('configured_server')
+            if configured_server:
+                self._cached_server_info = configured_server
+                return self._cached_server_info
+        except Exception as e:
+            logger.error(f"Error checking app config: {e}")
         
+        # Fall back to discovery
         self._cached_server_info = discover_dvr_server(self.timeout)
         return self._cached_server_info
     

@@ -29,7 +29,7 @@
         </div>
 
         <!-- Discovered Servers Section -->
-        {% if discovered_servers %}
+        {% if not config.get_setup_flag('setup_completed') and discovered_servers %}
         <div class="bg-gradient-to-r from-green-800/40 to-blue-800/40 backdrop-blur-xl border border-green-600/30 rounded-xl mb-8 shadow-lg">
             <div class="p-6 border-b border-gray-700/30">
                 <h2 class="text-xl font-semibold text-white flex items-center">
@@ -71,7 +71,7 @@
         {% endif %}
 
         <!-- Manual Configuration Section -->
-        <div class="bg-gradient-to-r from-gray-800/40 to-gray-900/60 backdrop-blur-xl border border-gray-600/30 rounded-xl mb-8 shadow-lg">
+        <div id="manual-config-section" class="bg-gradient-to-r from-gray-800/40 to-gray-900/60 backdrop-blur-xl border border-gray-600/30 rounded-xl mb-8 shadow-lg {% if config.get_setup_flag('setup_completed') %}hidden{% endif %}">
             <div class="p-6 border-b border-gray-700/30">
                 <h2 class="text-xl font-semibold text-white flex items-center">
                     <i class="fas fa-cog mr-3 text-blue-400"></i>
@@ -136,11 +136,20 @@
                             </button>
                             <div id="connection-status" class="text-sm"></div>
                         </div>
-                        <button type="submit" 
-                                id="save-server" 
-                                class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200">
-                            <i class="fas fa-save mr-2"></i>Save & Continue
-                        </button>
+                        <div class="flex space-x-4">
+                            {% if config.get_setup_flag('setup_completed') %}
+                            <button type="button" 
+                                    onclick="toggleEditForm()" 
+                                    class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200">
+                                Cancel
+                            </button>
+                            {% endif %}
+                            <button type="submit" 
+                                    id="save-server" 
+                                    class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-medium transition-all duration-200">
+                                <i class="fas fa-save mr-2"></i>{% if config.get_setup_flag('setup_completed') %}Save Changes{% else %}Save & Continue{% endif %}
+                            </button>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -148,15 +157,20 @@
 
         <!-- Current Server Status (if configured) -->
         {% if configured_server %}
-        <div class="bg-gradient-to-r from-blue-800/40 to-purple-800/40 backdrop-blur-xl border border-blue-600/30 rounded-xl shadow-lg">
-            <div class="p-6 border-b border-gray-700/30">
+        <div class="bg-gradient-to-r from-blue-800/40 to-purple-800/40 backdrop-blur-xl border border-blue-600/30 rounded-xl shadow-lg mb-8">
+            <div class="p-6 border-b border-gray-700/30 flex justify-between items-center">
                 <h3 class="text-xl font-semibold text-white flex items-center">
                     <i class="fas fa-check-circle mr-3 text-blue-400"></i>
                     Currently Configured Server
                 </h3>
+                {% if config.get_setup_flag('setup_completed') %}
+                <button onclick="toggleEditForm()" class="text-gray-300 hover:text-white transition-colors">
+                    <i class="fas fa-edit mr-1"></i>Edit
+                </button>
+                {% endif %}
             </div>
             <div class="p-6">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between flex-wrap gap-4">
                     <div class="flex items-center">
                         <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mr-6">
                             <i class="fas fa-server text-white text-xl"></i>
@@ -167,9 +181,15 @@
                         </div>
                     </div>
                     <div class="text-right">
+                        {% if config.get_setup_flag('setup_completed') %}
+                        <a href="/" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 inline-block">
+                            <i class="fas fa-home mr-2"></i>Go to Home
+                        </a>
+                        {% else %}
                         <a href="/setup/sync" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-medium transition-all duration-200 inline-block">
                             <i class="fas fa-arrow-right mr-2"></i>Continue Setup
                         </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -180,6 +200,16 @@
 </div>
 
 <script>
+// Toggle edit form
+function toggleEditForm() {
+    const section = document.getElementById('manual-config-section');
+    if (section.classList.contains('hidden')) {
+        section.classList.remove('hidden');
+    } else {
+        section.classList.add('hidden');
+    }
+}
+
 // Select a discovered server
 function selectServer(ip, port, name) {
     document.getElementById('ip_address').value = ip;

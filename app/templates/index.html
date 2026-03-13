@@ -231,8 +231,67 @@
             </div>
 
         {% else %}
-            <!-- STATE: Ready to Stream -->
             <!-- Hero Section -->
+            {% if hero_program %}
+            <div class="mb-8 mt-8 relative cursor-pointer group rounded-2xl overflow-hidden shadow-2xl h-[50vh] md:h-[60vh] max-h-[600px] min-h-[400px]" onclick="window.location.href='/player?channel={{ hero_program.channel.id }}'">
+                <!-- Background Image -->
+                <div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" 
+                     style="background-image: url('{{ hero_program.artwork_info.artwork_url if hero_program.artwork_info.artwork_url else '' }}');">
+                </div>
+                
+                <!-- Gradient overlays for text readability -->
+                <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/60 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-gray-900 via-gray-900/40 to-transparent"></div>
+                
+                <!-- Content positioned at bottom left -->
+                <div class="absolute bottom-0 left-0 w-full p-8 md:p-12">
+                    <div class="max-w-3xl text-left">
+                        <!-- Channel badge -->
+                        <div class="flex items-center space-x-3 mb-4">
+                            {% if hero_program.channel.logo_url or hero_program.artwork_info.channel_logo_url %}
+                            <img src="{{ hero_program.channel.logo_url or hero_program.artwork_info.channel_logo_url }}" class="h-8 object-contain rounded bg-white/10 p-1">
+                            {% endif %}
+                            <span class="text-white font-bold text-lg drop-shadow-md">{{ hero_program.channel.name }}</span>
+                            <span class="bg-red-600/90 text-white px-3 py-1 rounded-full text-xs font-bold animate-pulse shadow-red-900/50 shadow-lg">LIVE</span>
+                        </div>
+                        
+                        <!-- Title -->
+                        <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-4 drop-shadow-xl leading-tight">
+                            {{ hero_program.program.title }}
+                        </h1>
+                        
+                        <!-- Metadata row -->
+                        <div class="flex items-center text-gray-300 text-sm md:text-base font-medium space-x-4 mb-4 drop-shadow-md">
+                            <span>{{ hero_program.start_time }} - {{ hero_program.end_time }}</span>
+                            {% if hero_program.program.categories %}
+                            <span class="hidden md:inline">&bull;</span>
+                            <span class="hidden md:inline capitalize">{{ hero_program.program.categories.replace(' ', ' • ') }}</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Description -->
+                        {% if hero_program.program.description %}
+                        <p class="text-gray-200 text-base md:text-lg mb-8 line-clamp-2 md:line-clamp-3 drop-shadow-md max-w-2xl">
+                            {{ hero_program.program.description }}
+                        </p>
+                        {% endif %}
+                        
+                        <!-- Action Buttons -->
+                        <div class="flex items-center space-x-4">
+                            <button class="bg-white text-gray-900 hover:bg-gray-200 font-bold py-3 px-8 rounded-lg transition-all duration-300 shadow-xl flex items-center text-lg transform group-hover:-translate-y-1">
+                                <i class="fas fa-play mr-3"></i> Watch Live
+                            </button>
+                            {% if playlists_count > 0 %}
+                            <a href="/player" onclick="event.stopPropagation()" class="bg-gray-600/60 hover:bg-gray-500/80 text-white backdrop-blur-md font-bold py-3 px-6 rounded-lg transition-all duration-300 flex items-center shadow-lg border border-gray-400/30">
+                                <i class="fas fa-list mr-2"></i> Playlists
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Fallback Hero Section -->
             <div class="mb-8 mt-8">
                 <div class="relative">
                     <div class="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-green-600/10 rounded-2xl blur-xl"></div>
@@ -249,9 +308,10 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
-                        <!-- Quick Actions -->
-            {% if playlists_count > 0 %}
+                        <!-- Keep Quick Actions Hidden if Hero Present -->
+            {% if not hero_program and playlists_count > 0 %}
             <div class="mb-8 relative">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <a href="/player" class="group bg-gradient-to-r from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 text-center shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
@@ -384,147 +444,116 @@
             {% endif %}
             {% endif %}
 
-            <!-- Live Program Cards Section -->
-            {% if featured_programs %}
-            <div class="bg-gradient-to-r from-gray-800/30 to-gray-700/30 backdrop-blur-sm border border-gray-600/30 rounded-2xl p-8 mb-8 shadow-2xl">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold text-white flex items-center">
-                        <i class="fas fa-tv text-red-400 mr-3"></i>
-                        Currently Playing
-                        <span class="text-sm font-normal text-gray-400 ml-2">({{ selected_playlist_name }})</span>
-                    </h2>
-                </div>
-
-                <div class="relative">
-                    <div id="cards-container" class="grid grid-cols-3 gap-6">
-                        <!-- Cards will be inserted here by JavaScript -->
+            <!-- Category Rows -->
+            {% if category_rows %}
+            <div class="space-y-8 mb-12">
+                {% for category, programs in category_rows.items() %}
+                <div class="category-row-container relative">
+                    <!-- Category Header -->
+                    <div class="mb-4 flex items-center justify-between px-2">
+                        <h2 class="text-2xl font-bold text-white flex items-center">
+                            {% if category == 'Movies' %}<i class="fas fa-film text-purple-400 mr-3"></i>
+                            {% elif category == 'News' %}<i class="fas fa-newspaper text-blue-400 mr-3"></i>
+                            {% elif category == 'Sports' %}<i class="fas fa-football-ball text-orange-400 mr-3"></i>
+                            {% elif category == 'Kids' %}<i class="fas fa-child text-yellow-400 mr-3"></i>
+                            {% else %}<i class="fas fa-tv text-green-400 mr-3"></i>
+                            {% endif %}
+                            Live {{ category }}
+                        </h2>
                     </div>
-                    
-                    <!-- Carousel indicators -->
-                    <div class="flex justify-center mt-6">
-                        <div id="carousel-indicators" class="flex space-x-2">
-                            <!-- Indicators will be generated by JavaScript -->
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Hidden template for cards -->
-                <div id="card-template" style="display: none;">
-                    {% for program_card in featured_programs %}
-                    <div class="program-card" data-index="{{ loop.index0 }}">
-                        <div class="card-inner bg-gray-800/60 backdrop-blur-sm border border-gray-600/40 rounded-xl overflow-hidden hover:bg-gray-700/60 transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer group" onclick="selectChannel('{{ program_card.channel.id }}')">
-                            <!-- Channel Header - Fixed height -->
-                            <div class="bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white px-4 py-3 border-b border-gray-600/50 flex-shrink-0">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center min-w-0 flex-1">
-                                        {% if program_card.channel.logo_url %}
-                                        <img src="{{ program_card.channel.logo_url }}" alt="{{ program_card.channel.name }}" class="w-8 h-8 rounded mr-3 object-contain flex-shrink-0">
-                                        {% elif program_card.artwork_info.channel_logo_url %}
-                                        <img src="{{ program_card.artwork_info.channel_logo_url }}" alt="{{ program_card.channel.name }}" class="w-8 h-8 rounded mr-3 object-contain flex-shrink-0">
-                                        {% else %}
-                                        <div class="w-8 h-8 bg-blue-500 rounded flex items-center justify-center mr-3 flex-shrink-0">
-                                            <span class="text-white font-bold text-xs">{{ program_card.channel.name[:2] }}</span>
-                                        </div>
-                                        {% endif %}
-                                        <div class="min-w-0 flex-1">
-                                            <h3 class="font-semibold text-sm text-white truncate">{{ program_card.channel.name }}</h3>
+                    <!-- Horizontal Scroll Row -->
+                    <div class="relative group">
+                        <!-- Scroll Left Button -->
+                        <button class="absolute -left-4 top-1/2 transform -translate-y-1/2 z-10 bg-gray-900/80 hover:bg-gray-800 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hidden md:block" onclick="scrollRow(this, -1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        
+                        <div class="flex overflow-x-auto space-x-6 pb-6 pt-2 px-2 custom-scrollbar snap-x snap-mandatory hide-scroll-arrows">
+                            {% for program_card in programs %}
+                            <div class="flex-none w-72 md:w-80 snap-start">
+                                <div class="bg-gray-800/80 backdrop-blur-sm border border-gray-600/40 rounded-xl overflow-hidden hover:bg-gray-700/80 transition-all duration-300 shadow-lg hover:shadow-xl cursor-pointer group h-full flex flex-col" onclick="window.location.href='/player?channel={{ program_card.channel.id }}'">
+                                    
+                                    <!-- Channel Header -->
+                                    <div class="bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white px-4 py-3 border-b border-gray-600/50 flex-shrink-0">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center min-w-0 flex-1">
+                                                {% if program_card.channel.logo_url %}
+                                                <img src="{{ program_card.channel.logo_url }}" alt="{{ program_card.channel.name }}" class="w-8 h-8 rounded mr-3 object-contain flex-shrink-0">
+                                                {% elif program_card.artwork_info.channel_logo_url %}
+                                                <img src="{{ program_card.artwork_info.channel_logo_url }}" alt="{{ program_card.channel.name }}" class="w-8 h-8 rounded mr-3 object-contain flex-shrink-0">
+                                                {% else %}
+                                                <div class="w-8 h-8 bg-blue-500 rounded flex items-center justify-center mr-3 flex-shrink-0">
+                                                    <span class="text-white font-bold text-xs">{{ program_card.channel.name[:2] }}</span>
+                                                </div>
+                                                {% endif %}
+                                                <div class="min-w-0 flex-1">
+                                                    <h3 class="font-semibold text-sm text-white truncate">{{ program_card.channel.name }}</h3>
+                                                </div>
+                                            </div>
+                                            <div class="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse flex-shrink-0">
+                                                LIVE
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="bg-red-600 text-white px-2 py-1 rounded-full text-xs font-bold animate-pulse flex-shrink-0">
-                                        LIVE
-                                    </div>
-                                </div>
-                            </div>
 
-                            <!-- Program Content - Flexible area -->
-                            <div class="card-content p-4">
-                                <!-- Program Artwork - Fixed height -->
-                                <div class="mb-3 flex justify-center h-32 relative overflow-hidden rounded-lg flex-shrink-0">
-                                    {% if program_card.artwork_info.artwork_url %}
-                                        <img src="{{ program_card.artwork_info.artwork_url }}" 
-                                             alt="{{ program_card.program.title }}" 
-                                             class="max-w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
-                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                                        <!-- Fallback with category icon -->
-                                        <div class="hidden absolute inset-0 items-center justify-center {{ program_card.artwork_info.category_info.background if program_card.artwork_info.category_info else 'bg-gradient-to-br from-gray-600 to-gray-700' }} rounded-lg">
-                                            <div class="text-center text-white">
-                                                <i class="{{ program_card.artwork_info.category_info.icon if program_card.artwork_info.category_info else 'fas fa-tv' }} text-4xl mb-2 opacity-70"></i>
-                                                <div class="text-xs opacity-60">{{ program_card.artwork_info.category_info.description if program_card.artwork_info.category_info else 'Live TV' }}</div>
+                                    <!-- Content Flexible area -->
+                                    <div class="p-4 flex-1 flex flex-col">
+                                        <!-- Artwork -->
+                                        <div class="mb-3 flex justify-center h-40 relative overflow-hidden rounded-lg flex-shrink-0">
+                                            {% if program_card.artwork_info.artwork_url %}
+                                                <img src="{{ program_card.artwork_info.artwork_url }}" alt="{{ program_card.program.title }}" class="w-full h-full object-cover rounded-lg transition-transform duration-300 group-hover:scale-105" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            {% endif %}
+                                            
+                                            <div class="absolute inset-0 flex items-center justify-center {{ program_card.artwork_info.category_info.background if program_card.artwork_info.category_info else 'bg-gradient-to-br from-gray-700 to-gray-800' }} rounded-lg {{ 'hidden' if program_card.artwork_info.artwork_url else '' }}">
+                                                <div class="text-center text-white p-4">
+                                                    <h4 class="font-bold text-lg mb-1 line-clamp-2">{{ program_card.program.title }}</h4>
+                                                    <div class="text-xs opacity-60">{{ program_card.start_time }}</div>
+                                                </div>
                                             </div>
                                         </div>
-                                    {% elif program_card.artwork_info.dynamic_placeholder %}
-                                        <!-- Dynamic placeholder based on title -->
-                                        <div class="w-full h-full {{ program_card.artwork_info.dynamic_placeholder.background }} rounded-lg flex items-center justify-center">
-                                            <div class="text-center text-white">
-                                                <i class="{{ program_card.artwork_info.dynamic_placeholder.icon }} text-4xl mb-2"></i>
-                                                <div class="text-sm font-medium opacity-90">{{ program_card.artwork_info.dynamic_placeholder.text }}</div>
+                                        
+                                        <!-- Title -->
+                                        <div class="mb-2 flex-shrink-0">
+                                            <h4 class="font-bold text-lg text-white line-clamp-2" title="{{ program_card.program.title }}">{{ program_card.program.title }}</h4>
+                                            {% if program_card.start_time and program_card.end_time %}
+                                            <p class="text-xs text-blue-300 mt-1">{{ program_card.start_time }} - {{ program_card.end_time }}</p>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Description -->
+                                        <div class="flex-1 mb-3">
+                                            {% if program_card.program.description %}
+                                            <p class="text-sm text-gray-300 line-clamp-2 leading-relaxed" title="{{ program_card.program.description }}">{{ program_card.program.description }}</p>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Progress Bar -->
+                                        <div class="mt-auto">
+                                            {% if program_card.progress > 0 %}
+                                            <div class="flex justify-between items-center mb-1.5">
+                                                <span class="text-[10px] text-gray-400 uppercase tracking-wide">Progress</span>
+                                                <span class="text-[10px] text-green-400 font-medium">{{ program_card.remaining_minutes }} min left</span>
                                             </div>
-                                        </div>
-                                    {% elif program_card.artwork_info.category_info %}
-                                        <!-- Category-based fallback -->
-                                        <div class="w-full h-full {{ program_card.artwork_info.category_info.background }} rounded-lg flex items-center justify-center">
-                                            <div class="text-center text-white">
-                                                <i class="{{ program_card.artwork_info.category_info.icon }} text-4xl mb-2 opacity-70"></i>
-                                                <div class="text-xs opacity-60">{{ program_card.artwork_info.category_info.description }}</div>
+                                            <div class="w-full bg-gray-700/50 rounded-full h-1.5">
+                                                <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-1.5 rounded-full" style="width: {{ program_card.progress }}%"></div>
                                             </div>
+                                            {% endif %}
                                         </div>
-                                    {% else %}
-                                        <!-- Final fallback -->
-                                        <div class="w-full h-full bg-gradient-to-br from-gray-600 to-gray-700 rounded-lg flex items-center justify-center">
-                                            <div class="text-center text-white">
-                                                <i class="fas fa-tv text-4xl mb-2 opacity-50"></i>
-                                                <div class="text-xs opacity-40">Live TV</div>
-                                            </div>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- Title and Time - Fixed height -->
-                                <div class="mb-3 flex-shrink-0">
-                                    <h4 class="card-title font-bold text-lg text-white mb-1 line-clamp-2 flex items-start" title="{{ program_card.program.title }}">{{ program_card.program.title }}</h4>
-                                    {% if program_card.start_time and program_card.end_time %}
-                                    <p class="text-sm text-blue-300">{{ program_card.start_time }} - {{ program_card.end_time }}</p>
-                                    {% endif %}
-                                </div>
-                                
-                                <!-- Description - Flexible area with consistent height -->
-                                <div class="mb-4 flex-1 flex items-start">
-                                    <div class="card-description w-full">
-                                        {% if program_card.program.description %}
-                                        <p class="text-sm text-gray-300 line-clamp-3" title="{{ program_card.program.description }}">{{ program_card.program.description }}</p>
-                                        {% else %}
-                                        <p class="text-sm text-gray-500 italic opacity-60">No description available</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                
-                                <!-- Footer area - Always at bottom -->
-                                <div class="card-footer">
-                                    <!-- Progress Bar Area - Fixed height -->
-                                    <div class="h-12 flex flex-col justify-end mb-4">
-                                        {% if program_card.progress > 0 %}
-                                        <div class="flex justify-between items-center mb-2">
-                                            <span class="text-xs text-gray-400">Progress</span>
-                                            <span class="text-xs text-green-400">{{ program_card.remaining_minutes }} min left</span>
-                                        </div>
-                                        <div class="w-full bg-gray-700 rounded-full h-2">
-                                            <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500" style="width: {{ program_card.progress }}%"></div>
-                                        </div>
-                                        {% endif %}
                                     </div>
                                     
-                                    <!-- Watch Button - Fixed height -->
-                                    <div class="h-10">
-                                        <div class="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-4 py-2 rounded-lg transition-all duration-300 text-center font-medium h-full flex items-center justify-center">
-                                            <i class="fas fa-play mr-2"></i>Watch Now
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
+                            {% endfor %}
                         </div>
+                        
+                        <!-- Scroll Right Button -->
+                        <button class="absolute -right-4 top-1/2 transform -translate-y-1/2 z-10 bg-gray-900/80 hover:bg-gray-800 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hidden md:block" onclick="scrollRow(this, 1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
                     </div>
-                    {% endfor %}
                 </div>
+                {% endfor %}
             </div>
             {% endif %}
         {% endif %}

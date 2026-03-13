@@ -157,7 +157,7 @@ class SearchManager {
                         <div class="flex items-center">
                             ${result.logo_url ? 
                                 `<div class="w-12 h-12 rounded-lg overflow-hidden mr-4 bg-gray-700/50 flex items-center justify-center border border-gray-600/30">
-                                    <img src="${result.logo_url}" alt="${result.name}" class="w-full h-full object-contain">
+                                    <img src="${result.logo_url}" alt="${result.name}" loading="lazy" class="w-full h-full object-contain">
                                  </div>` :
                                 `<div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center mr-4 shadow-lg">
                                     <span class="text-white font-bold text-sm">${result.name.substr(0, 2)}</span>
@@ -182,7 +182,7 @@ class SearchManager {
                         <div class="flex items-center">
                             ${result.artwork_url ? 
                                 `<div class="w-12 h-12 rounded-lg overflow-hidden mr-4 bg-gray-700/50 flex items-center justify-center border border-gray-600/30">
-                                    <img src="${result.artwork_url}" alt="${result.title}" class="w-full h-full object-cover">
+                                    <img src="${result.artwork_url}" alt="${result.title}" loading="lazy" class="w-full h-full object-cover">
                                  </div>` :
                                 `<div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center mr-4 shadow-lg">
                                     <i class="fas fa-tv text-white"></i>

@@ -10,9 +10,104 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 import logging
 import os
+import time
 from . import bp
 
 logger = logging.getLogger(__name__)
+
+# Simple globally-scoped memory cache for EPG XML data
+_epg_xml_cache = {
+    'data': None,
+    'timestamp': 0
+}
+
+# Cache for parsed programmes for fast searching and current program lookups
+_epg_parsed_cache = {
+    'data': None,
+    'timestamp': 0
+}
+
+def get_cached_epg_xml(epg_url):
+    """Fetch EPG XML from URL, returning cached data if still valid."""
+    global _epg_xml_cache, _epg_parsed_cache
+    current_time = time.time()
+    
+    # Check if cache is valid using EPG_CACHE_DURATION from constants
+    if _epg_xml_cache['data'] and (current_time - _epg_xml_cache['timestamp']) < EPG_CACHE_DURATION:
+        return _epg_xml_cache['data']
+        
+    logger.info(f"Fetching fresh EPG XML data from: {epg_url}")
+    response = requests.get(epg_url, timeout=HTTP_REQUEST_TIMEOUT)
+    response.raise_for_status()
+    
+    _epg_xml_cache['data'] = response.text
+    _epg_xml_cache['timestamp'] = current_time
+    
+    # Invalidate parsed cache so it rebuilds on next request
+    _epg_parsed_cache['data'] = None
+    _epg_parsed_cache['timestamp'] = 0
+    
+    return response.text
+
+def get_parsed_epg_programs():
+    """Get parsed EPG programs, parsing and caching them if needed."""
+    global _epg_parsed_cache
+    current_time = time.time()
+    
+    if _epg_parsed_cache['data'] is not None and (current_time - _epg_parsed_cache['timestamp']) < EPG_CACHE_DURATION:
+        return _epg_parsed_cache['data']
+        
+    server_info = get_current_server_info()
+    if not server_info: return []
+    
+    try:
+        with ChannelsDVRClient() as client:
+            guide_url = client.get_epg_url()
+            if not guide_url: return []
+            xmltv_content = get_cached_epg_xml(guide_url)
+            
+            root = ET.fromstring(xmltv_content)
+            parsed_programs = []
+            
+            for programme in root.findall('.//programme'):
+                start_str = programme.get('start', '')
+                stop_str = programme.get('stop', '')
+                if not start_str or not stop_str: continue
+                
+                try:
+                    start_time = datetime.strptime(start_str, '%Y%m%d%H%M%S %z')
+                    stop_time = datetime.strptime(stop_str, '%Y%m%d%H%M%S %z')
+                    
+                    title_elem = programme.find('title')
+                    title = title_elem.text if title_elem is not None else ''
+                    
+                    desc_elem = programme.find('desc')
+                    desc = desc_elem.text if desc_elem is not None else ''
+                    
+                    category_elems = programme.findall('category')
+                    categories = ' '.join([c.text.lower() for c in category_elems if c.text]) if category_elems else ''
+                    
+                    channel_id = programme.get('channel', '')
+                    
+                    parsed_programs.append({
+                        'start_time': start_time,
+                        'stop_time': stop_time,
+                        'title': title,
+                        'title_lower': title.lower() if title else '',
+                        'categories': categories,
+                        'desc': desc,
+                        'channel_id': channel_id
+                    })
+                except Exception:
+                    continue
+                    
+            _epg_parsed_cache['data'] = parsed_programs
+            _epg_parsed_cache['timestamp'] = current_time
+            return parsed_programs
+            
+    except Exception as e:
+        logger.error(f"Error parsing EPG for cache: {e}")
+        return []
 
 def check_dvr_availability():
     """Check if DVR server is currently available."""
@@ -25,14 +120,14 @@ def check_dvr_availability():
             response = requests.get(test_url, timeout=QUICK_CHECK_TIMEOUT)
             return response.status_code == 200
         except:
-            pass
+            return False # Avoid blocking discovery fallback
     
-    # Fallback to discovery
-    server_info = discover_dvr_server(timeout=QUICK_CHECK_TIMEOUT)  # Quick check
+    # Only if NOT configured, fallback to quick discovery
+    server_info = discover_dvr_server(timeout=QUICK_CHECK_TIMEOUT)
     return server_info is not None
 
 def get_current_server_info():
-    """Get current server info, preferring configured server over discovery."""
+    """Get current server info, preferring configured server without silent fallbacks."""
     # First try configured server
     configured_server = AppConfig.get_setup_flag('configured_server')
     if configured_server:
@@ -41,11 +136,13 @@ def get_current_server_info():
             test_url = f"http://{configured_server['ip_address']}:{configured_server['port']}/status"
             response = requests.get(test_url, timeout=QUICK_CHECK_TIMEOUT)
             if response.status_code == 200:
-                return configured_server
+                pass # Confirm it's reachable
         except:
             pass
+        # Return what's configured even if unreachable to prevent blocking discovery fallback
+        return configured_server
     
-    # Fallback to discovery
+    # Fallback to discovery ONLY if NO server is configured
     return discover_dvr_server(timeout=DVR_DISCOVERY_TIMEOUT)
 
 def get_featured_programs(channel_ids, channels):
@@ -76,8 +173,8 @@ def get_featured_programs(channel_ids, channels):
         if not tvg_ids_needed:
             return []
         
-        # Get guide data using existing function
-        server_info = discover_dvr_server(timeout=DVR_DISCOVERY_TIMEOUT)
+        # Get server configuration without forcing mDNS block
+        server_info = get_current_server_info()
         if not server_info:
             return []
             
@@ -89,12 +186,11 @@ def get_featured_programs(channel_ids, channels):
                 logger.error("Could not get EPG URL")
                 return []
                 
-            # Fetch EPG data
-            response = requests.get(epg_url, timeout=HTTP_REQUEST_TIMEOUT)
-            response.raise_for_status()
+            # Fetch EPG data using cache helper
+            xmltv_content = get_cached_epg_xml(epg_url)
             
             # Parse the guide data - this already handles time parsing and filtering
-            guide_data = parse_xmltv_data(response.text, tvg_ids_needed, tvg_id_to_id)
+            guide_data = parse_xmltv_data(xmltv_content, tvg_ids_needed, tvg_id_to_id)
             
         except Exception as e:
             logger.error(f"Error fetching guide data: {e}")
@@ -163,7 +259,7 @@ def get_featured_programs(channel_ids, channels):
                 # Get enhanced artwork information  
                 artwork_info = artwork_service.get_artwork_with_fallback(current_program, channel)
                 
-                featured_programs.append({
+                prog_data = {
                     'channel': channel,
                     'program': current_program,
                     'artwork_info': artwork_info,
@@ -171,7 +267,8 @@ def get_featured_programs(channel_ids, channels):
                     'remaining_minutes': remaining_minutes,
                     'start_time': start_time.strftime('%I:%M %p'),
                     'end_time': end_time.strftime('%I:%M %p')
-                })
+                }
+                featured_programs.append(prog_data)
                 
             else:
                 # No current program - get next upcoming program if available
@@ -402,6 +499,18 @@ def index():
     
     # Get live program data for featured cards only if ready to stream
     featured_programs = []
+    hero_program = None
+    category_rows = {
+        'Movies': [],
+        'News': [],
+        'Sports': [],
+        'Shows': [],
+        'Kids': [],
+        'Other': []
+    }
+    
+    selected_playlist_name = ""
+    
     if user_state == "ready_to_stream":
         try:
             db = Database()
@@ -410,16 +519,15 @@ def index():
             
             if playlists:
                 # Check for the last selected playlist from cookie first, then session
-                selected_playlist_name = request.cookies.get('selectedPlaylist')
+                selected_playlist_name_cookie = request.cookies.get('selectedPlaylist')
                 selected_playlist_id = session.get('selected_playlist_id')
                 featured_playlist = None
                 
                 # First, try to find playlist by name from cookie
-                if selected_playlist_name:
+                if selected_playlist_name_cookie:
                     for playlist in playlists:
-                        if playlist['name'] == selected_playlist_name:
+                        if playlist['name'] == selected_playlist_name_cookie:
                             featured_playlist = playlist
-                            # Update session to match cookie selection
                             session['selected_playlist_id'] = playlist['id']
                             break
                 
@@ -433,33 +541,67 @@ def index():
                 # If no valid playlist found, use the first available playlist
                 if not featured_playlist:
                     featured_playlist = playlists[0]
-                    # Store this as the selected playlist for future use
                     session['selected_playlist_id'] = featured_playlist['id']
                 
+                selected_playlist_name = featured_playlist['name']
                 playlist_channels = playlist_model.get_channels(featured_playlist['id'])
                 
-                # Get up to 6 channels for featured cards
-                featured_channels = playlist_channels[:MAX_FEATURED_PROGRAMS]
-                
-                if featured_channels:
-                    # Get current program data for these channels
-                    channel_ids = [ch['id'] for ch in featured_channels]
-                    featured_programs = get_featured_programs(channel_ids, featured_channels)
+                if playlist_channels:
+                    channel_ids = [ch['id'] for ch in playlist_channels]
+                    
+                    # Get ALL currently playing programs for the playlist, not just MAX_FEATURED
+                    all_featured = get_featured_programs(channel_ids, playlist_channels)
+                    
+                    # Prioritize finding the hero
+                    hero_candidates = []
+                    
+                    for prog in all_featured:
+                        cat_str = prog['program'].get('categories', '').lower() if prog.get('program') else ''
+                        title_str = prog['program'].get('title', '').lower() if prog.get('program') else ''
+                        artwork = prog.get('artwork_info', {}).get('artwork_url')
+                        
+                        # Determine Category Block
+                        bucket = 'Other'
+                        if 'movie' in cat_str or 'film' in cat_str:
+                            bucket = 'Movies'
+                        elif 'news' in cat_str or 'business' in cat_str:
+                            bucket = 'News'
+                        elif 'sports' in cat_str or 'event' in cat_str:
+                            bucket = 'Sports'
+                        elif 'kids' in cat_str or 'children' in cat_str or 'animation' in cat_str:
+                            bucket = 'Kids'
+                        elif 'show' in cat_str or 'series' in cat_str or 'episode' in cat_str or 'talk' in cat_str:
+                            bucket = 'Shows'
+                            
+                        # Add to rows
+                        category_rows[bucket].append(prog)
+                        
+                        # Find heroes based on artwork quality
+                        if artwork:
+                            score = 0
+                            if bucket == 'Movies': score = 3
+                            elif bucket == 'Sports': score = 2
+                            elif bucket == 'Shows': score = 1
+                            hero_candidates.append((score, prog, bucket))
+                            
+                    # Select hero program
+                    if hero_candidates:
+                        hero_candidates.sort(key=lambda x: x[0], reverse=True)
+                        hero_program = hero_candidates[0][1]
+                        hero_bucket = hero_candidates[0][2]
+                        # Remove the hero from its category row so it doesn't duplicate
+                        if hero_program in category_rows[hero_bucket]:
+                            category_rows[hero_bucket].remove(hero_program)
+
+                    # Remove empty categories
+                    category_rows = {k: v for k, v in category_rows.items() if v}
+                    
+                    # Backwards compatibility for templates not yet updated
+                    featured_programs = all_featured[:MAX_FEATURED_PROGRAMS]
                     
         except Exception as e:
             logger.error(f"Error getting featured programs: {e}")
             featured_programs = []
-    
-    # Get the selected playlist name for display
-    selected_playlist_name = ""
-    if featured_programs and 'selected_playlist_id' in session:
-        try:
-            for playlist in all_playlists:
-                if playlist['id'] == session['selected_playlist_id']:
-                    selected_playlist_name = playlist['name']
-                    break
-        except Exception:
-            pass
     
     # Check if auto-scan was attempted (keeping for backward compatibility)
     auto_scan_attempted = AppConfig.get_setup_flag('auto_scan_attempted')
@@ -473,6 +615,8 @@ def index():
                          enabled_channels_count=len([ch for ch in all_channels if ch.get('is_enabled', False)]),
                          playlists_count=len(all_playlists),
                          featured_programs=featured_programs,
+                         hero_program=hero_program,
+                         category_rows=category_rows,
                          selected_playlist_name=selected_playlist_name,
                          auto_scan_attempted=auto_scan_attempted)
 
@@ -541,24 +685,28 @@ def setup():
 @bp.route('/setup/server')
 def setup_server():
     """Server configuration page - first step in setup process."""
+    # Get any previously configured server and setup status
+    configured_server = AppConfig.get_setup_flag('configured_server')
+    setup_completed = AppConfig.get_setup_flag('setup_completed')
+    
     # Always attempt discovery to show available servers
     discovered_servers = []
     
-    # Try discovery multiple times to catch different servers
-    for attempt in range(3):  # Try 3 times with short timeouts
-        server_info = discover_dvr_server(timeout=2)  # Short timeout for each attempt
-        if server_info and server_info not in discovered_servers:
-            discovered_servers.append(server_info)
+    # Try discovery only if not configured or if we want to force discovery
+    allow_discovery = not (configured_server and setup_completed)
     
-    # Get any previously configured server
-    configured_server = AppConfig.get_setup_flag('configured_server')
+    if allow_discovery:
+        for attempt in range(1):  # Try 1 time with short timeout
+            server_info = discover_dvr_server(timeout=2)  # Short timeout for each attempt
+            if server_info and server_info not in discovered_servers:
+                discovered_servers.append(server_info)
     
-    # Default to showing discovered servers
+    # Default to showing discovered servers if available, else configured server
     if discovered_servers:
         dvr_status = "online"
         primary_server = discovered_servers[0]  # Use first discovered as primary
     else:
-        dvr_status = "offline"
+        dvr_status = "online" if configured_server else "offline"
         primary_server = configured_server if configured_server else None
     
     # Generate URLs if we have a server
@@ -1012,16 +1160,10 @@ def search():
         
         # Get current program information for channels
         current_programs = {}
-        server_info = discover_dvr_server(timeout=QUICK_CHECK_TIMEOUT)
+        server_info = get_current_server_info()
         if server_info:
             try:
-                client = ChannelsDVRClient()
-                guide_url = client.get_epg_url()
-                
-                if guide_url:
-                    response = requests.get(guide_url, timeout=DVR_DISCOVERY_TIMEOUT)
-                    if response.status_code == 200:
-                        current_programs = get_current_programs_for_channels(response.text, channels)
+                current_programs = get_current_programs_for_channels(channels)
             except Exception as e:
                 logger.warning(f"Could not fetch current programs for search: {e}")
         
@@ -1045,20 +1187,13 @@ def search():
                 results.append(channel_result)
         
         # If we have a DVR server, also search for programs
-        server_info = discover_dvr_server(timeout=QUICK_CHECK_TIMEOUT)
         if server_info and len(results) < MAX_TOTAL_SEARCH_RESULTS:  # Limit total results
             try:
                 # Get guide data and search for programs
-                client = ChannelsDVRClient()
-                guide_url = client.get_epg_url()
-                
-                if guide_url:
-                    response = requests.get(guide_url, timeout=DVR_DISCOVERY_TIMEOUT)
-                    if response.status_code == 200:
-                        programs = search_programs_in_guide(response.text, query, channels)
-                        # Add programs up to the remaining space in our result limit
-                        remaining_slots = MAX_TOTAL_SEARCH_RESULTS - len(results)
-                        results.extend(programs[:remaining_slots])
+                programs = search_programs_in_guide(query, channels)
+                # Add programs up to the remaining space in our result limit
+                remaining_slots = MAX_TOTAL_SEARCH_RESULTS - len(results)
+                results.extend(programs[:remaining_slots])
             except Exception as e:
                 logger.warning(f"Could not search programs: {e}")
         
@@ -1074,119 +1209,53 @@ def search():
             'error': str(e)
         }), 500
 
-def search_programs_in_guide(guide_xml, query, channels):
-    """Search for programs in the XML guide data."""
+def search_programs_in_guide(query, channels):
+    """Search for programs in the cached parsed guide data."""
     results = []
     query_lower = query.lower()
     
-    try:
-        root = ET.fromstring(guide_xml)
-        
-        # Create channel mapping
-        channel_map = {}
-        for channel in channels:
-            if channel.get('tvg_id'):
-                channel_map[channel['tvg_id']] = channel
-        
-        # Search programmes
-        current_time = datetime.now(timezone.utc)
-        end_time = current_time + timedelta(hours=PROGRAM_SEARCH_HOURS)  # Search next hours
-        
-        for programme in root.findall('.//programme'):
-            try:
-                # Check if programme is within time window
-                start_str = programme.get('start', '')
-                if not start_str:
-                    continue
-                    
-                start_time = datetime.strptime(start_str, '%Y%m%d%H%M%S %z')
-                if start_time < current_time or start_time > end_time:
-                    continue
-                
-                # Get programme details
-                title_elem = programme.find('title')
-                if title_elem is None or not title_elem.text:
-                    continue
-                    
-                title = title_elem.text
-                if query_lower not in title.lower():
-                    continue
-                
-                # Get channel info
-                channel_id = programme.get('channel', '')
-                if channel_id not in channel_map:
-                    continue
-                    
-                channel = channel_map[channel_id]
-                
-                # Get description
-                desc_elem = programme.find('desc')
-                description = desc_elem.text if desc_elem is not None else ''
-                
-                results.append({
-                    'type': 'program',
-                    'title': title,
-                    'description': description,
-                    'channel_id': channel['id'],
-                    'channel_name': channel['name'],
-                    'start_time': start_time.strftime('%I:%M %p'),
-                    'artwork_url': None  # Could be enhanced later
-                })
-                
-                if len(results) >= MAX_PROGRAM_RESULTS:  # Limit program results
-                    break
-                    
-            except Exception as e:
-                logger.debug(f"Error parsing programme: {e}")
-                continue
-                
-    except Exception as e:
-        logger.warning(f"Error parsing guide XML for search: {e}")
+    channel_map = {channel['tvg_id']: channel for channel in channels if channel.get('tvg_id')}
     
+    current_time = datetime.now(timezone.utc)
+    
+    parsed_programs = get_parsed_epg_programs()
+    
+    for prog in parsed_programs:
+        # Check if program is currently playing
+        if prog['start_time'] <= current_time <= prog['stop_time']:
+            if query_lower in prog['title_lower'] or query_lower in prog['categories']:
+                channel_id = prog['channel_id']
+                if channel_id in channel_map:
+                    channel = channel_map[channel_id]
+                    results.append({
+                        'type': 'program',
+                        'title': prog['title'],
+                        'description': prog['desc'],
+                        'channel_id': channel['id'],
+                        'channel_name': channel['name'],
+                        'start_time': prog['start_time'].strftime('%I:%M %p'),
+                        'artwork_url': None  # Could be enhanced later
+                    })
+                    
+                    if len(results) >= MAX_PROGRAM_RESULTS:
+                        break
+                        
     return results
 
-def get_current_programs_for_channels(guide_xml, channels):
-    """Get current programs for a list of channels."""
+def get_current_programs_for_channels(channels):
+    """Get current programs for a list of channels from cached parsed data."""
     current_programs = {}
+    channel_map = {channel['tvg_id']: channel for channel in channels if channel.get('tvg_id')}
     
-    try:
-        root = ET.fromstring(guide_xml)
-        
-        # Create channel mapping
-        channel_map = {}
-        for channel in channels:
-            if channel.get('tvg_id'):
-                channel_map[channel['tvg_id']] = channel
-        
-        # Find current programmes
-        current_time = datetime.now(timezone.utc)
-        
-        for programme in root.findall('.//programme'):
-            try:
-                # Check if programme is currently airing
-                start_str = programme.get('start', '')
-                stop_str = programme.get('stop', '')
-                if not start_str or not stop_str:
-                    continue
-                    
-                start_time = datetime.strptime(start_str, '%Y%m%d%H%M%S %z')
-                stop_time = datetime.strptime(stop_str, '%Y%m%d%H%M%S %z')
-                
-                if start_time <= current_time <= stop_time:
-                    # This is a current program
-                    channel_id = programme.get('channel', '')
-                    if channel_id in channel_map:
-                        title_elem = programme.find('title')
-                        if title_elem is not None and title_elem.text:
-                            current_programs[channel_id] = title_elem.text
-                    
-            except Exception as e:
-                logger.debug(f"Error parsing programme for current programs: {e}")
-                continue
-                
-    except Exception as e:
-        logger.warning(f"Error parsing guide XML for current programs: {e}")
+    current_time = datetime.now(timezone.utc)
+    parsed_programs = get_parsed_epg_programs()
     
+    for prog in parsed_programs:
+        if prog['start_time'] <= current_time <= prog['stop_time']:
+            channel_id = prog['channel_id']
+            if channel_id in channel_map:
+                current_programs[channel_id] = prog['title']
+                
     return current_programs
 
 # API Routes for playlist management
@@ -1235,14 +1304,20 @@ def save_playlists():
     """Save playlists (create, update, delete)."""
     try:
         data = request.json or {}
-        playlists = data.get('playlists', [])
+        # Filter out the read-only search history playlist
+        playlists = [p for p in data.get('playlists', []) if str(p.get('id', '')) != 'search-history']
         
         db = Database()
         playlist_model = Playlist(db)
         
         # Get existing playlists to determine what to delete
         existing_playlists = {p['id']: p for p in playlist_model.get_all()}
-        current_playlist_ids = {p['id'] for p in playlists if 'id' in p}
+        
+        # Extract current playlist IDs safely (must be numeric)
+        current_playlist_ids = set()
+        for p in playlists:
+            if 'id' in p and str(p['id']).isdigit():
+                current_playlist_ids.add(int(p['id']))
         
         # Delete playlists that are no longer in the list
         for playlist_id in existing_playlists.keys():
@@ -1251,7 +1326,11 @@ def save_playlists():
         
         # Process each playlist
         for playlist_data in playlists:
-            if 'id' not in playlist_data or playlist_data['id'] > 1000000000:  # New playlist (timestamp ID)
+            pid = -1
+            if 'id' in playlist_data and str(playlist_data['id']).isdigit():
+                pid = int(playlist_data['id'])
+                
+            if pid == -1 or pid > 1000000000:  # New playlist (timestamp ID or no ID)
                 # Create new playlist
                 playlist_id = playlist_model.create(
                     name=playlist_data['name'],
@@ -1259,7 +1338,7 @@ def save_playlists():
                 )
             else:
                 # Update existing playlist
-                playlist_id = playlist_data['id']
+                playlist_id = pid
                 playlist_model.update(
                     playlist_id=playlist_id,
                     name=playlist_data['name'],
@@ -1412,12 +1491,11 @@ def get_guide_data():
                     logger.warning("No EPG URL available")
                     return jsonify({})
         
-        # Fetch EPG data
-        response = requests.get(epg_url, timeout=HTTP_REQUEST_TIMEOUT)
-        response.raise_for_status()
+        # Fetch EPG data using cache helper
+        xmltv_content = get_cached_epg_xml(epg_url)
         
         # Parse XMLTV data
-        guide_data = parse_xmltv_data(response.text, tvg_ids_needed, tvg_id_to_id)
+        guide_data = parse_xmltv_data(xmltv_content, tvg_ids_needed, tvg_id_to_id)
         
         # Create response with appropriate caching headers
         from flask import make_response

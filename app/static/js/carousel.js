@@ -106,3 +106,17 @@ class CarouselManager {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = CarouselManager;
 }
+
+// Global function for scrolling category rows
+window.scrollRow = function(button, direction) {
+    const rowContainer = button.parentElement.querySelector('.overflow-x-auto');
+    if (!rowContainer) return;
+    
+    // Calculate scroll amount based on container width
+    const scrollAmount = rowContainer.clientWidth * 0.8;
+    
+    rowContainer.scrollBy({
+        left: direction * scrollAmount,
+        behavior: 'smooth'
+    });
+};

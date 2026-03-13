@@ -25,4 +25,4 @@ echo ""
 echo "================================"
 
 # Start the application
-python app.py
+python run.py

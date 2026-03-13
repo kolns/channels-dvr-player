@@ -48,7 +48,7 @@ echo 🎉 Your Live TV Player is ready!
 echo.
 echo To start the application:
 echo   1. Run: venv\Scripts\activate
-echo   2. Run: python app.py
+echo   2. Run: python run.py
 echo   3. Open: http://localhost:7734
 echo.
 echo Or use the activation script:

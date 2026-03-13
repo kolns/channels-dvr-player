@@ -162,13 +162,7 @@ class Channel:
             for row in rows:
                 channel = dict(row)
                 # Parse attributes JSON
-                if channel['attributes']:
-                    try:
-                        channel['attributes'] = json.loads(channel['attributes'])
-                    except json.JSONDecodeError:
-                        channel['attributes'] = {}
-                else:
-                    channel['attributes'] = {}
+                channel['attributes'] = {}  # Skipped JSON parsing for listing performance
                 channels.append(channel)
             
             return channels
@@ -211,13 +205,7 @@ class Channel:
             for row in rows:
                 channel = dict(row)
                 # Parse attributes JSON
-                if channel['attributes']:
-                    try:
-                        channel['attributes'] = json.loads(channel['attributes'])
-                    except json.JSONDecodeError:
-                        channel['attributes'] = {}
-                else:
-                    channel['attributes'] = {}
+                channel['attributes'] = {}  # Skipped JSON parsing for listing performance
                     
                 # Add display fields for the UI
                 channel['number'] = channel.get('channel_number', '')
@@ -265,34 +253,21 @@ class Channel:
         with self.db.get_connection() as conn:
             conn.row_factory = sqlite3.Row
             
-            # Search in name, tvg_id, and channel_number fields
+            # Search in name
             search_query = f"%{query}%"
             rows = conn.execute("""
                 SELECT * FROM channels 
-                WHERE (name LIKE ? OR tvg_id LIKE ? OR channel_number LIKE ?)
+                WHERE name LIKE ?
                 AND is_enabled = 1
-                ORDER BY 
-                    CASE 
-                        WHEN name LIKE ? THEN 1
-                        WHEN tvg_id LIKE ? THEN 2
-                        WHEN channel_number LIKE ? THEN 3
-                        ELSE 4
-                    END,
-                    name
+                ORDER BY name
                 LIMIT 100
-            """, (search_query, search_query, search_query, search_query, search_query, search_query)).fetchall()
+            """, (search_query,)).fetchall()
             
             channels = []
             for row in rows:
                 channel = dict(row)
                 # Parse attributes JSON
-                if channel['attributes']:
-                    try:
-                        channel['attributes'] = json.loads(channel['attributes'])
-                    except json.JSONDecodeError:
-                        channel['attributes'] = {}
-                else:
-                    channel['attributes'] = {}
+                channel['attributes'] = {}  # Skipped JSON parsing for listing performance
                 channels.append(channel)
             
             return channels
@@ -318,6 +293,35 @@ class Playlist:
             conn.row_factory = sqlite3.Row
             rows = conn.execute("SELECT * FROM playlists ORDER BY name").fetchall()
             return [dict(row) for row in rows]
+            
+    def get_all_with_channels(self) -> List[Dict[str, Any]]:
+        """Get all playlists with their channels included to avoid N+1 queries."""
+        with self.db.get_connection() as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute("SELECT * FROM playlists ORDER BY name").fetchall()
+            playlists = [dict(row) for row in rows]
+            
+            playlist_map = {p['id']: p for p in playlists}
+            for p in playlists:
+                p['channels'] = []
+                
+            # Bulk fetch channels
+            channel_rows = conn.execute("""
+                SELECT c.*, pc.sort_order, pc.playlist_id
+                FROM channels c 
+                JOIN playlist_channels pc ON c.id = pc.channel_id 
+                ORDER BY pc.playlist_id, pc.sort_order
+            """).fetchall()
+            
+            for row in channel_rows:
+                channel = dict(row)
+                playlist_id = channel.pop('playlist_id')
+                channel['attributes'] = {}  # Skipped JSON parsing for listing performance
+                
+                if playlist_id in playlist_map:
+                    playlist_map[playlist_id]['channels'].append(channel)
+                    
+            return playlists
     
     def get_by_id(self, playlist_id: int) -> Optional[Dict[str, Any]]:
         """Get playlist by ID."""
@@ -377,13 +381,7 @@ class Playlist:
             channels = []
             for row in rows:
                 channel = dict(row)
-                if channel['attributes']:
-                    try:
-                        channel['attributes'] = json.loads(channel['attributes'])
-                    except json.JSONDecodeError:
-                        channel['attributes'] = {}
-                else:
-                    channel['attributes'] = {}
+                channel['attributes'] = {}  # Skipped JSON parsing for listing performance
                 channels.append(channel)
             
             return channels
@@ -450,13 +448,7 @@ class SearchHistory:
             for row in rows:
                 channel = dict(row)
                 # Parse attributes JSON
-                if channel['attributes']:
-                    try:
-                        channel['attributes'] = json.loads(channel['attributes'])
-                    except json.JSONDecodeError:
-                        channel['attributes'] = {}
-                else:
-                    channel['attributes'] = {}
+                channel['attributes'] = {}  # Skipped JSON parsing for listing performance
                 
                 # Add display fields for the UI
                 channel['number'] = channel.get('channel_number', '')

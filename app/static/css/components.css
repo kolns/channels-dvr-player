@@ -130,22 +130,23 @@
 }
 
 /* Hide scrollbars but keep scrolling functionality - for player */
-.scrollbar-hide {
+.scrollbar-hide, .hide-scroll-arrows {
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
     scrollbar-width: none;  /* Firefox */
 }
 
-.scrollbar-hide::-webkit-scrollbar {
+.scrollbar-hide::-webkit-scrollbar, .hide-scroll-arrows::-webkit-scrollbar {
     display: none;  /* Safari and Chrome */
     width: 0;
+    height: 0;
     background: transparent;
 }
 
-.scrollbar-hide::-webkit-scrollbar-track {
+.scrollbar-hide::-webkit-scrollbar-track, .hide-scroll-arrows::-webkit-scrollbar-track {
     display: none;
 }
 
-.scrollbar-hide::-webkit-scrollbar-thumb {
+.scrollbar-hide::-webkit-scrollbar-thumb, .hide-scroll-arrows::-webkit-scrollbar-thumb {
     display: none;
 }
 

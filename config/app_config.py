@@ -6,7 +6,7 @@ class AppConfig:
     # Application Identity
     APP_NAME = "Channels DVR Player"
     APP_TAGLINE = "Watch Channels DVR Live TV from your Desktop"
-    APP_VERSION = "1.0.0"
+    APP_VERSION = "1.1.0"
     APP_AUTHOR = "mike_here"
     
     # Flask Configuration
@@ -71,7 +71,7 @@ class AppConfig:
                 with open(flag_file, 'r') as f:
                     content = f.read().strip()
                     if content:
-                        flags = json.loads(content)
+                        flags = dict(json.loads(content))
             
             # Update the flag
             flags[key] = value
