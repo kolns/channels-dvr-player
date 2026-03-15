@@ -118,6 +118,8 @@ class ChannelsPlayer {
         const dot = document.getElementById('liveIndicatorDot');
         const text = document.getElementById('liveIndicatorText');
         
+        if (!dot || !text) return; // Prevent errors if UI is simplified
+        
         if (isLive) {
             // Live state - enhanced green glow with pulsing animation
             dot.className = 'w-2.5 h-2.5 bg-green-500 rounded-full shadow-lg';
@@ -144,13 +146,16 @@ class ChannelsPlayer {
     }
     
     updateCurrentTime() {
+        const timeEl = document.getElementById('currentTime');
+        if (!timeEl) return; // Prevent errors if UI elements removed
+        
         const now = new Date();
         const timeString = now.toLocaleTimeString('en-US', { 
             hour12: true, 
             hour: 'numeric', 
             minute: '2-digit' 
         });
-        document.getElementById('currentTime').textContent = timeString;
+        timeEl.textContent = timeString;
     }
     
     togglePlaylistDropdown() {
@@ -935,7 +940,11 @@ class ChannelsPlayer {
         const programBar = document.getElementById('currentProgramBar');
         
         if (!this.currentChannel) {
-            programBar.style.display = 'none';
+            document.getElementById('currentChannelName').textContent = 'Ready to Play';
+            document.getElementById('currentProgramTitle').textContent = 'Select a channel to begin watching';
+            document.getElementById('currentProgramTime').textContent = '--:--';
+            document.getElementById('currentProgramProgress').style.width = '0%';
+            programBar.style.display = 'block';
             return;
         }
         

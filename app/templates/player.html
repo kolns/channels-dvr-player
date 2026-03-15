@@ -5,16 +5,14 @@
 {% block body_class %}player-hide-nav{% endblock %}
 
 {% block content %}
-<div id="app" class="flex flex-col bg-black h-screen overflow-hidden player-main">
+<div id="app" class="flex flex-col bg-black min-h-screen player-main overflow-x-hidden">
     
     <!-- Top Navigation Bar -->
     <div class="bg-gradient-to-r from-gray-900/95 to-black/95 backdrop-blur-xl border-b border-gray-700/30 px-6 py-4 flex items-center justify-between relative z-50 flex-shrink-0">
         <div class="flex items-center space-x-6">
             <!-- Logo/Brand -->
             <div class="flex items-center">
-                <div class="w-10 h-10 bg-gradient-to-br from-red-600 to-red-700 rounded-full flex items-center justify-center mr-3 shadow-lg">
-                    <i class="fas fa-play text-xl text-white"></i>
-                </div>
+                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" class="w-8 h-8 mr-3">
                 <div>
                     <h1 class="text-xl font-bold text-white">Live TV</h1>
                     <p class="text-xs text-gray-400" id="currentPlaylistName">Select Playlist</p>
@@ -24,56 +22,27 @@
         
         <!-- Controls -->
         <div class="flex items-center space-x-4">
-            <!-- Live Status Indicator - Redesigned with glow effect -->
-            <div id="liveIndicator" class="relative group">
-                <div class="flex items-center space-x-2 bg-gradient-to-r from-green-900/30 to-green-800/20 backdrop-blur-sm border border-green-600/40 rounded-xl px-4 py-2.5 transition-all duration-300 hover:from-green-800/40 hover:to-green-700/30">
-                    <div class="relative">
-                        <div id="liveIndicatorDot" class="w-2.5 h-2.5 bg-green-500 rounded-full shadow-lg"></div>
-                        <div class="absolute inset-0 w-2.5 h-2.5 bg-green-400 rounded-full animate-ping opacity-75"></div>
-                    </div>
-                    <span id="liveIndicatorText" class="text-green-300 text-sm font-semibold tracking-wide">LIVE</span>
-                </div>
-                <!-- Subtle glow effect -->
-                <div class="absolute inset-0 bg-green-500/10 rounded-xl blur-sm -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
-            
-            <!-- Time Display - Modern digital clock style -->
-            <div class="relative group">
-                <div class="bg-gradient-to-br from-slate-800/80 to-slate-900/90 backdrop-blur-sm border border-slate-600/40 rounded-xl px-4 py-2.5 transition-all duration-300 hover:border-slate-500/60">
-                    <div class="flex items-center space-x-2">
-                        <i class="fas fa-clock text-slate-400 text-sm"></i>
-                        <div class="text-slate-200 text-sm font-mono font-medium tracking-wider" id="currentTime">--:--</div>
-                    </div>
-                </div>
-                <!-- Subtle background glow -->
-                <div class="absolute inset-0 bg-slate-400/5 rounded-xl blur-sm -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
-            
-            <!-- Home Button - Keep as requested but with modern styling -->
-            <div class="relative group">
-                <a href="{{ url_for('main.index') }}" class="flex items-center justify-center w-11 h-11 bg-gradient-to-br from-gray-800/60 to-gray-900/80 hover:from-gray-700/70 hover:to-gray-800/90 border border-gray-600/50 hover:border-gray-500/70 rounded-xl transition-all duration-300 group" title="Back to Home">
-                    <i class="fas fa-home text-gray-300 group-hover:text-white text-lg transition-colors duration-300"></i>
-                </a>
-                <!-- Subtle hover glow -->
-                <div class="absolute inset-0 bg-gray-400/10 rounded-xl blur-sm -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-            </div>
+            <!-- Home Button -->
+            <a href="{{ url_for('main.index') }}" class="text-gray-400 hover:text-white transition-colors duration-300" title="Back to Home">
+                <i class="fas fa-home text-2xl"></i>
+            </a>
         </div>
     </div>
     
     <!-- Main Content Area -->
-    <div class="relative bg-black flex-1 flex flex-col overflow-hidden">
+    <div class="relative bg-black flex-1 py-6 px-4 md:px-8">
         
-        <!-- Player View -->
-        <div id="playerView" class="flex-1 flex min-h-0 overflow-hidden">
+        <!-- Player View - Bulletproof Absolute Right Anchor Layout -->
+        <div id="playerView" class="relative max-w-[1920px] mx-auto lg:pr-[calc(20rem+1.5rem)] xl:pr-[calc(24rem+1.5rem)]">
             
-            <!-- Video Player -->
-            <div class="flex-1 flex flex-col bg-black">
-                <!-- Video Container positioned at top -->
-                <div class="bg-black p-4 flex-shrink-0">
-                    <div class="relative bg-black aspect-video w-full object-contain">
+            <!-- LEFT COLUMN: Video Player & Info (Dictates Page Height) -->
+            <div class="w-full flex flex-col min-w-0">
+                <!-- Video Container -->
+                <div class="bg-gradient-to-br from-gray-900 to-black border border-gray-700/50 rounded-xl overflow-hidden shadow-2xl flex-shrink-0">
+                    <div class="relative aspect-video w-full">
                         <!-- Video Element -->
                         <video id="videoPlayer" 
-                               class="w-full h-full object-contain"
+                               class="w-full h-full object-contain bg-black"
                                controls 
                                crossorigin="anonymous"
                                preload="none">
@@ -101,48 +70,47 @@
                 </div>
                 
                 <!-- Current Program Info Bar -->
-                <div class="p-4 flex-shrink-0" id="currentProgramBar" style="display: none;">
-                    <!-- Background shading aligned with video container -->
-                    <div class="bg-gradient-to-r from-gray-900/95 to-black/95 backdrop-blur-xl border-t border-gray-700/30 p-4 rounded-lg">
+                <div class="mt-4 flex-shrink-0" id="currentProgramBar">
+                    <div class="bg-gray-900/60 backdrop-blur-md border border-gray-700/30 p-5 rounded-xl shadow-lg">
                         <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <div class="text-white font-semibold" id="currentChannelName">Channel Name</div>
-                                <div class="text-gray-400 text-sm" id="currentProgramTitle">Program Title</div>
+                            <div class="flex flex-col min-w-0 pr-4">
+                                <div class="text-white font-semibold text-lg truncate" id="currentChannelName">Ready to Play</div>
+                                <div class="text-gray-400 text-sm truncate mt-1" id="currentProgramTitle">Select a channel to begin watching</div>
                             </div>
-                            <div class="text-gray-400 text-sm" id="currentProgramTime">--:-- - --:--</div>
+                            <div class="text-gray-400 text-sm whitespace-nowrap bg-black/40 px-3 py-1.5 rounded-lg border border-gray-700/50 shadow-inner" id="currentProgramTime">--:--</div>
                         </div>
-                        <div class="mt-2">
-                            <div class="w-full bg-gray-700 rounded-full h-1">
-                                <div class="bg-slate-400 h-1 rounded-full transition-all duration-300" id="currentProgramProgress" style="width: 0%"></div>
+                        <div class="mt-4">
+                            <div class="w-full bg-black/60 rounded-full h-1.5 overflow-hidden shadow-inner">
+                                <div class="bg-gradient-to-r from-slate-500 to-slate-400 h-1.5 rounded-full transition-all duration-300" id="currentProgramProgress" style="width: 0%"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- Channel Sidebar -->
-            <div class="w-80 bg-gradient-to-b from-gray-900/95 to-black/95 backdrop-blur-xl border-l border-gray-700/30 flex flex-col h-full">
+            <!-- RIGHT COLUMN: Channel Sidebar (Pinned to reserved right-padding) -->
+            <div class="w-full mt-6 lg:mt-0 lg:absolute lg:right-0 lg:top-0 lg:bottom-0 lg:w-80 xl:w-96 bg-gray-900/80 backdrop-blur-md border border-gray-700/50 rounded-xl flex flex-col shadow-lg overflow-hidden">
                 
                 <!-- Channel List Header -->
-                <div class="p-4 border-b border-gray-700/30 flex-shrink-0">
+                <div class="p-4 border-b border-gray-700/50 bg-gray-900/90 flex-shrink-0">
                     <div class="flex items-center justify-between mb-3">
                         <h3 class="text-lg font-semibold text-white">Playlist</h3>
-                        <span class="text-xs text-gray-400" id="channelCount">0 channels</span>
+                        <span class="text-xs font-medium text-gray-400 bg-black/40 px-2 py-1 rounded-md" id="channelCount">0 channels</span>
                     </div>
                     
                     <!-- Playlist Selector -->
                     <div class="relative">
-                        <button id="playlistButton" class="w-full bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600/50 rounded-lg px-3 py-2 text-white text-sm flex items-center justify-between transition-colors">
+                        <button id="playlistButton" class="w-full bg-black/50 hover:bg-black/70 border border-gray-600/50 rounded-lg px-4 py-2.5 text-white text-sm flex items-center justify-between transition-colors shadow-inner">
                             <div class="flex items-center space-x-2">
-                                <i class="fas fa-list"></i>
-                                <span id="playlistButtonText">Choose Playlist</span>
+                                <i class="fas fa-list text-gray-400"></i>
+                                <span id="playlistButtonText" class="font-medium">Choose Playlist</span>
                             </div>
-                            <i class="fas fa-chevron-down text-xs"></i>
+                            <i class="fas fa-chevron-down text-xs text-gray-400"></i>
                         </button>
                         
                         <!-- Dropdown -->
-                        <div id="playlistDropdown" class="hidden absolute top-full mt-2 w-full bg-gray-800/95 backdrop-blur-xl border border-gray-600/30 rounded-lg shadow-2xl shadow-black/50 z-50">
-                            <div class="p-2 max-h-60 overflow-y-auto" id="playlistList">
+                        <div id="playlistDropdown" class="hidden absolute top-full mt-2 w-full bg-gray-800 border border-gray-600/50 rounded-lg shadow-2xl z-50 overflow-hidden">
+                            <div class="max-h-60 overflow-y-auto w-full" id="playlistList">
                                 <!-- Playlists will be populated here -->
                             </div>
                         </div>
@@ -150,7 +118,7 @@
                 </div>
                 
                 <!-- Channel List - Scrollable without scrollbar -->
-                <div class="flex-1 overflow-y-auto scrollbar-hide min-h-0" id="channelList">
+                <div class="flex-1 overflow-y-auto scrollbar-hide bg-black/20" id="channelList">
                     <!-- Channels will be populated here -->
                 </div>
             </div>

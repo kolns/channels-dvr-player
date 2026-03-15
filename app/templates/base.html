@@ -31,7 +31,7 @@
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}?v=1.1">
     
     <!-- Tailwind Config -->
     <script>
@@ -125,7 +125,7 @@
     <script src="{{ url_for('static', filename='js/search.js') }}"></script>
     <script src="{{ url_for('static', filename='js/carousel.js') }}"></script>
     {% elif request.endpoint == 'main.player' %}
-    <script src="{{ url_for('static', filename='js/player.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/player.js') }}?v=1.1"></script>
     {% elif request.endpoint == 'main.playlist' %}
     <script src="{{ url_for('static', filename='js/playlist-manager.js') }}"></script>
     {% endif %}

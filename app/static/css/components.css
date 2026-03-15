@@ -152,8 +152,9 @@
 
 /* Player specific styles */
 .player-main {
-    overflow: hidden !important;
-    height: 100vh !important;
+    min-height: 100vh;
+    background-color: #000;
+    color: #fff;
 }
 
 .player-hide-nav header, 

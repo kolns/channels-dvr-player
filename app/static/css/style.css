@@ -2,3 +2,16 @@
 
 /* This file is reserved for global theme overrides and branding */
 /* Component-specific styles are in components.css */
+
+/* Hide native video player timeline/progress bar 
+   as it only shows the HLS buffer, not the actual live TV program time.
+   We only want to keep play/pause, volume, and fullscreen controls. */
+video::-webkit-media-controls-timeline,
+video::-webkit-media-controls-current-time-display,
+video::-webkit-media-controls-time-remaining-display {
+    display: none !important;
+}
+
+video::-moz-range-track {
+    display: none !important;
+}
